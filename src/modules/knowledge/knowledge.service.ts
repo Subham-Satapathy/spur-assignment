@@ -1,11 +1,14 @@
 import { KnowledgeRepository } from './knowledge.repository';
 import { KnowledgeEntry } from '../../shared/types';
 import logger from '../../shared/logger';
+import { redisClient } from '../../shared/redis';
 
 export class KnowledgeService {
   private cachedPrompt: string | null = null;
   private cacheExpiry: number = 0;
-  private readonly CACHE_TTL = 60000; // 60 seconds
+  private readonly CACHE_TTL = 60000; // 60 seconds (in-memory fallback)
+  private readonly REDIS_CACHE_KEY = 'knowledge:formatted_prompt';
+  private readonly REDIS_TTL = 600; // 10 minutes in Redis (conserve 25MB RAM)
 
   constructor(private repository: KnowledgeRepository) {}
 
@@ -20,15 +23,29 @@ export class KnowledgeService {
   }
 
   /**
-   * Format knowledge for LLM prompt (cached)
+   * Format knowledge for LLM prompt (cached in Redis, fallback to in-memory)
    */
   async formatForPrompt(): Promise<string> {
-    // Return cached version if still valid
+    // Try Redis first (persistent, shared across instances)
+    try {
+      const cached = await redisClient.get(this.REDIS_CACHE_KEY);
+      if (cached) {
+        logger.debug('Knowledge cache hit (Redis)');
+        return cached;
+      }
+    } catch (error) {
+      logger.warn('Redis cache read failed, using in-memory fallback', { error });
+    }
+
+    // Fallback: check in-memory cache
     const now = Date.now();
     if (this.cachedPrompt && now < this.cacheExpiry) {
+      logger.debug('Knowledge cache hit (in-memory)');
       return this.cachedPrompt;
     }
 
+    // Cache miss: generate from database
+    logger.debug('Knowledge cache miss, fetching from DB');
     const entries = await this.repository.getActive();
 
     if (entries.length === 0) {
@@ -60,9 +77,15 @@ export class KnowledgeService {
 
     const formatted = sections.join('\n\n');
     
-    // Cache the result
+    // Cache in both Redis and in-memory
+    await redisClient.set(this.REDIS_CACHE_KEY, formatted, this.REDIS_TTL);
     this.cachedPrompt = formatted;
     this.cacheExpiry = Date.now() + this.CACHE_TTL;
+    
+    logger.info('Knowledge base cached', { 
+      size: formatted.length, 
+      entries: entries.length 
+    });
     
     return formatted;
   }
@@ -80,8 +103,8 @@ export class KnowledgeService {
     const entry = await this.repository.create(category, title, content, priority);
     logger.info('Knowledge entry added', { id: entry.id, category, title });
     
-    // Invalidate cache
-    this.cachedPrompt = null;
+    // Invalidate both caches
+    await this.invalidateCache();
     
     return entry;
   }
@@ -96,8 +119,8 @@ export class KnowledgeService {
     await this.repository.update(id, updates);
     logger.info('Knowledge entry updated', { id });
     
-    // Invalidate cache
-    this.cachedPrompt = null;
+    // Invalidate both caches
+    await this.invalidateCache();
   }
 
   /**
@@ -106,5 +129,22 @@ export class KnowledgeService {
   async deleteKnowledge(id: string): Promise<void> {
     await this.repository.delete(id);
     logger.info('Knowledge entry deleted', { id });
+    
+    // Invalidate both caches
+    await this.invalidateCache();
+  }
+
+  /**
+   * Invalidate all caches (Redis + in-memory)
+   */
+  private async invalidateCache(): Promise<void> {
+    // Clear in-memory cache
+    this.cachedPrompt = null;
+    this.cacheExpiry = 0;
+    
+    // Clear Redis cache
+    await redisClient.del(this.REDIS_CACHE_KEY);
+    
+    logger.debug('Knowledge cache invalidated');
   }
 }

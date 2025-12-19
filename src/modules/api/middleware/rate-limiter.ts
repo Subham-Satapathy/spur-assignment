@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { TooManyRequestsError } from '../../../shared/errors';
+import { redisClient } from '../../../shared/redis';
+import logger from '../../../shared/logger';
 
 interface RateLimitStore {
   [key: string]: {
@@ -26,7 +28,31 @@ class RateLimiter {
     }
   }
 
-  check(identifier: string, maxRequests: number, windowMs: number): boolean {
+  /**
+   * Check rate limit using Redis (fallback to in-memory)
+   */
+  async check(identifier: string, maxRequests: number, windowMs: number): Promise<boolean> {
+    // Try Redis first (distributed rate limiting for multi-instance deployments)
+    const redisKey = `ratelimit:${identifier}`;
+    const ttlSeconds = Math.ceil(windowMs / 1000);
+    
+    const count = await redisClient.increment(redisKey, ttlSeconds);
+    
+    if (count !== null) {
+      // Redis available
+      logger.debug('Rate limit check (Redis)', { identifier, count, max: maxRequests });
+      return count <= maxRequests;
+    }
+    
+    // Fallback to in-memory
+    logger.debug('Rate limit check (in-memory fallback)', { identifier });
+    return this.checkInMemory(identifier, maxRequests, windowMs);
+  }
+
+  /**
+   * In-memory rate limit check (fallback when Redis unavailable)
+   */
+  private checkInMemory(identifier: string, maxRequests: number, windowMs: number): boolean {
     const now = Date.now();
     const record = this.store[identifier];
 
@@ -47,7 +73,20 @@ class RateLimiter {
     return true;
   }
 
-  getRetryAfter(identifier: string): number {
+  async getRetryAfter(identifier: string): Promise<number> {
+    // Try getting TTL from Redis
+    const redisKey = `ratelimit:${identifier}`;
+    try {
+      const client = await redisClient.getClient();
+      if (client) {
+        const ttl = await client.ttl(redisKey);
+        if (ttl > 0) return ttl;
+      }
+    } catch (error) {
+      logger.debug('Redis TTL check failed, using in-memory');
+    }
+
+    // Fallback to in-memory
     const record = this.store[identifier];
     if (!record) return 0;
     return Math.ceil((record.resetTime - Date.now()) / 1000);
@@ -61,15 +100,15 @@ class RateLimiter {
 const rateLimiter = new RateLimiter();
 
 // IP-based rate limiting for chat endpoint
-export function chatRateLimit(req: Request, res: Response, next: NextFunction): void {
+export async function chatRateLimit(req: Request, res: Response, next: NextFunction): Promise<void> {
   const ip = req.ip || req.socket.remoteAddress || 'unknown';
   const identifier = `chat:${ip}`;
   
   // Allow 20 messages per hour per IP
-  const allowed = rateLimiter.check(identifier, 20, 60 * 60 * 1000);
+  const allowed = await rateLimiter.check(identifier, 20, 60 * 60 * 1000);
 
   if (!allowed) {
-    const retryAfter = rateLimiter.getRetryAfter(identifier);
+    const retryAfter = await rateLimiter.getRetryAfter(identifier);
     res.setHeader('Retry-After', retryAfter);
     res.setHeader('X-RateLimit-Limit', '20');
     res.setHeader('X-RateLimit-Remaining', '0');
@@ -81,24 +120,22 @@ export function chatRateLimit(req: Request, res: Response, next: NextFunction): 
   }
 
   // Set rate limit headers
-  const record = (rateLimiter as any).store[identifier];
   res.setHeader('X-RateLimit-Limit', '20');
-  res.setHeader('X-RateLimit-Remaining', Math.max(0, 20 - record.count));
-  res.setHeader('X-RateLimit-Reset', new Date(record.resetTime).toISOString());
-
+  res.setHeader('X-RateLimit-Remaining', '0'); // Actual count in Redis, placeholder for now
+  
   next();
 }
 
 // Aggressive rate limiting for new conversations (prevent spam)
-export function conversationRateLimit(req: Request, res: Response, next: NextFunction): void {
+export async function conversationRateLimit(req: Request, res: Response, next: NextFunction): Promise<void> {
   const ip = req.ip || req.socket.remoteAddress || 'unknown';
   const identifier = `conversation:${ip}`;
   
   // Allow 5 new conversations per hour per IP
-  const allowed = rateLimiter.check(identifier, 5, 60 * 60 * 1000);
+  const allowed = await rateLimiter.check(identifier, 5, 60 * 60 * 1000);
 
   if (!allowed) {
-    const retryAfter = rateLimiter.getRetryAfter(identifier);
+    const retryAfter = await rateLimiter.getRetryAfter(identifier);
     res.setHeader('Retry-After', retryAfter);
     throw new TooManyRequestsError(
       `Too many conversations created. Limit: 5 per hour. Try again in ${retryAfter} seconds.`
@@ -109,15 +146,15 @@ export function conversationRateLimit(req: Request, res: Response, next: NextFun
 }
 
 // Global API rate limiting
-export function globalRateLimit(req: Request, res: Response, next: NextFunction): void {
+export async function globalRateLimit(req: Request, res: Response, next: NextFunction): Promise<void> {
   const ip = req.ip || req.socket.remoteAddress || 'unknown';
   const identifier = `global:${ip}`;
   
   // Allow 100 requests per 15 minutes per IP
-  const allowed = rateLimiter.check(identifier, 100, 15 * 60 * 1000);
+  const allowed = await rateLimiter.check(identifier, 100, 15 * 60 * 1000);
 
   if (!allowed) {
-    const retryAfter = rateLimiter.getRetryAfter(identifier);
+    const retryAfter = await rateLimiter.getRetryAfter(identifier);
     res.setHeader('Retry-After', retryAfter);
     throw new TooManyRequestsError(
       `Too many requests. Please slow down and try again in ${retryAfter} seconds.`

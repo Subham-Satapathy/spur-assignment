@@ -36,7 +36,43 @@ This guide will walk you through setting up and running the AI Chat Support Agen
 
 6. Add credits to your account if needed (check [platform.openai.com/account/billing](https://platform.openai.com/account/billing))
 
-## Step 3: Update Your .env File
+## Step 3: Setup Redis (Optional but Recommended)
+
+### Option 1: Use Render Free Redis
+
+1. Go to [dashboard.render.com](https://dashboard.render.com)
+
+2. Click **"New +"** → **"Redis"**
+
+3. Choose:
+   - **Name**: spur-chat-redis
+   - **Plan**: Free (25MB RAM, 50 connections)
+   - **Region**: Same as your app
+
+4. Click **"Create Redis"**
+
+5. Copy the **Internal Redis URL** (looks like: `redis://red-xxxxx:6379`)
+
+### Option 2: Run Redis Locally
+
+```bash
+# macOS
+brew install redis
+brew services start redis
+
+# URL: redis://localhost:6379
+```
+
+### Option 3: Skip Redis (Not Recommended)
+
+Set in `.env`:
+```env
+REDIS_ENABLED=false
+```
+
+**Note**: App will use in-memory caching (resets on restart, doesn't scale across instances)
+
+## Step 4: Update Your .env File
 
 Open the `.env` file in the project root and update these values:
 
@@ -54,6 +90,11 @@ DATABASE_URL=postgresql://YOUR_USER:YOUR_PASSWORD@ep-xxxxx.region.aws.neon.tech/
 OPENAI_API_KEY=sk-YOUR_ACTUAL_KEY_HERE
 OPENAI_MODEL=gpt-4
 
+# Redis Configuration (Optional)
+# Paste your Redis URL here (from Render or local):
+REDIS_ENABLED=true
+REDIS_URL=redis://red-xxxxx:6379
+
 # Logging
 LOG_LEVEL=info
 ```
@@ -63,9 +104,11 @@ LOG_LEVEL=info
 ```env
 DATABASE_URL=postgresql://john_doe:abc123password@ep-cool-mountain-123456.us-east-2.aws.neon.tech/neondb?sslmode=require
 OPENAI_API_KEY=sk-proj-abcdef1234567890XYZ
+REDIS_ENABLED=true
+REDIS_URL=redis://red-d52qenbe5dus73bk2sj0:6379
 ```
 
-## Step 4: Install Dependencies
+## Step 5: Install Dependencies
 
 Run in your terminal:
 
@@ -75,7 +118,7 @@ npm install
 
 This will install all required packages (Express, Drizzle ORM, OpenAI SDK, etc.)
 
-## Step 5: Initialize Database
+## Step 6: Initialize Database
 
 Push your database schema to NeonDB:
 
@@ -94,7 +137,7 @@ This creates 3 tables:
 - `messages` - Stores all messages
 - `knowledge_entries` - Stores FAQ data
 
-## Step 6: Seed Knowledge Base
+## Step 7: Seed Knowledge Base
 
 Populate your database with sample FAQ data:
 
@@ -114,7 +157,7 @@ This adds FAQs about:
 - Payment methods
 - Customer support hours
 
-## Step 7: Build the Project
+## Step 8: Build the Project
 
 Compile TypeScript to JavaScript:
 
@@ -128,7 +171,7 @@ You should see:
 (No errors)
 ```
 
-## Step 8: Start the Server
+## Step 9: Start the Server
 
 Start the development server:
 
@@ -140,12 +183,20 @@ You should see:
 ```
 info: Starting AI Chat Support server...
 info: Database connection validated successfully
+info: Redis connected successfully
+info: Redis stats { memoryUsed: '1.2M', connectedClients: 1 }
 info: Application bootstrap completed
 info: Server listening on port 3000
 info: 🚀 Server ready at http://localhost:3000
 ```
 
-## Step 9: Test the Chat UI
+**Note**: If Redis is unavailable, you'll see:
+```
+warn: Redis is enabled but not available - using in-memory fallback
+```
+The app will work fine, just without persistent caching.
+
+## Step 10: Test the Chat UI
 
 1. Open your browser to: **http://localhost:3000**
 
@@ -201,6 +252,23 @@ info: 🚀 Server ready at http://localhost:3000
   # Then re-run:
   npm run db:push
   npm run db:seed
+  ```
+
+### Redis Connection Issues
+
+- **"Redis is enabled but not available"**
+  - Check your `REDIS_URL` is correct
+  - Verify Redis instance is running (check Render dashboard)
+  - App continues working with in-memory cache
+
+- **Redis sleeps on free tier**
+  - First request after sleep may be slow
+  - Auto-reconnects after wake-up
+  - This is normal behavior
+
+- **Want to disable Redis**
+  ```env
+  REDIS_ENABLED=false
   ```
 
 ## Next Steps

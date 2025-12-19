@@ -18,6 +18,7 @@ src/
 ├── shared/
 │   ├── config/         # Environment configuration
 │   ├── database/       # NeonDB connection & Drizzle schema
+│   ├── redis/          # Redis client with graceful fallback
 │   ├── errors/         # Custom error classes
 │   ├── logger/         # Winston structured logging
 │   └── types/          # Shared TypeScript interfaces
@@ -30,6 +31,7 @@ src/
 
 - **Backend**: Node.js 18+, TypeScript (strict mode), Express 4.18
 - **Database**: NeonDB (serverless PostgreSQL) with Drizzle ORM 0.45
+- **Cache**: Redis (optional, with graceful fallback)
 - **LLM Provider**: OpenAI (GPT-4)  
 - **Frontend**: Vanilla JavaScript chat UI
 - **Validation**: Zod schemas
@@ -46,11 +48,13 @@ src/
 
 - ✅ Real LLM Integration (OpenAI GPT-4)
 - ✅ Serverless PostgreSQL (NeonDB) with Drizzle ORM
+- ✅ **Redis Caching** with graceful fallback (optimized for free tier)
+- ✅ Distributed rate limiting via Redis
 - ✅ Conversation persistence with full history
 - ✅ Knowledge base for context-aware responses
 - ✅ Clean chat UI (no framework overhead)
 - ✅ Robust error handling & validation
-- ✅ Health checks for database & LLM
+- ✅ Health checks for database, LLM & Redis
 - ✅ Structured logging
 - ✅ Full TypeScript type safety
 
@@ -60,6 +64,7 @@ src/
 - **npm** or yarn
 - **NeonDB account** (free tier available at [neon.tech](https://neon.tech))
 - **OpenAI API key** ([platform.openai.com](https://platform.openai.com))
+- **Redis instance** (optional - free tier at [Render](https://render.com) or local)
 
 ## 🛠️ Quick Start
 
@@ -96,6 +101,10 @@ DATABASE_URL=postgresql://your-user:your-password@ep-xxx.region.aws.neon.tech/yo
 # OpenAI
 OPENAI_API_KEY=sk-your-actual-key-here
 OPENAI_MODEL=gpt-4
+
+# Redis (Optional - for caching & rate limiting)
+REDIS_ENABLED=true
+REDIS_URL=redis://your-redis-host:6379
 ```
 
 ### 4. Initialize Database Schema
@@ -319,6 +328,8 @@ curl http://localhost:3000/api/conversations/$CONV_ID/messages
 | `DATABASE_URL` | Yes | - | NeonDB connection string |
 | `OPENAI_API_KEY` | Yes | - | OpenAI API key |
 | `OPENAI_MODEL` | No | `gpt-4` | OpenAI model |
+| `REDIS_ENABLED` | No | `false` | Enable Redis caching |
+| `REDIS_URL` | No | - | Redis connection URL |
 | `LOG_LEVEL` | No | `info` | Winston log level |
 
 ## 📖 Module Documentation
@@ -354,9 +365,11 @@ Manages:
 
 Features:
 - FAQ storage & retrieval
+- **Redis caching** with 10-min TTL (falls back to in-memory)
 - Category-based organization
 - Priority-based sorting
 - Active/inactive entry management
+- Cache invalidation on CRUD operations
 
 ### Messaging Module (`src/modules/messaging`)
 
@@ -371,9 +384,20 @@ Event bus for:
 
 HTTP layer with:
 - Express routes & middleware
+- **Redis-based distributed rate limiting** (with in-memory fallback)
 - Zod validation
 - Error handling
 - CORS configuration
+
+### Redis Module (`src/shared/redis`)
+
+Caching layer optimized for Render free tier (25MB RAM, 50 connections):
+- **Lazy connection** - connects on first use
+- **Auto-reconnect** - handles cold starts after sleep
+- **Graceful fallback** - app continues if Redis unavailable
+- **Knowledge base caching** - reduces DB load (10-min TTL)
+- **Rate limit counters** - distributed across instances
+- **Health monitoring** - memory & connection tracking
 
 ## 🚀 Deployment
 

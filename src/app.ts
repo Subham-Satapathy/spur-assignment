@@ -8,6 +8,7 @@ import { ChatService } from './modules/chat';
 import { createApp } from './modules/api';
 import { config } from './shared/config';
 import logger from './shared/logger';
+import { redisClient } from './shared/redis';
 
 export interface AppContext {
   app: Express;
@@ -21,8 +22,31 @@ export interface AppContext {
 export async function bootstrapApp(): Promise<AppContext> {
   logger.info('Bootstrapping application...');
 
+  // Initialize database
   const db = createDatabase();
   logger.info('Database connection created');
+
+  // Initialize Redis (optional - app continues if it fails)
+  if (config.redis.enabled) {
+    try {
+      const isRedisAvailable = await redisClient.isAvailable();
+      if (isRedisAvailable) {
+        logger.info('Redis connected successfully');
+        const stats = await redisClient.getStats();
+        if (stats) {
+          logger.info('Redis stats', stats);
+        }
+      } else {
+        logger.warn('Redis is enabled but not available - using in-memory fallback');
+      }
+    } catch (error) {
+      logger.warn('Redis initialization failed - using in-memory fallback', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  } else {
+    logger.info('Redis disabled - using in-memory caching');
+  }
 
   const conversationRepository = new ConversationRepository(db);
   const knowledgeRepository = new KnowledgeRepository(db);
