@@ -10,11 +10,7 @@ services:
         value: production
       - key: DATABASE_URL
         sync: false
-      - key: LLM_PROVIDER
-        sync: false
       - key: OPENAI_API_KEY
-        sync: false
-      - key: ANTHROPIC_API_KEY
         sync: false
       - key: PORT
         value: 3000

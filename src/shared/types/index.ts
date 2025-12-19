@@ -57,7 +57,7 @@ export interface KnowledgeEntry {
 /**
  * LLM provider types
  */
-export type LLMProvider = 'openai' | 'anthropic';
+export type LLMProvider = 'openai';
 
 /**
  * Conversation context for LLM

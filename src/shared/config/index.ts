@@ -11,7 +11,7 @@ export interface Config {
     url: string;
   };
   llm: {
-    provider: 'openai' | 'anthropic';
+    provider: 'openai';
     apiKey: string;
     model: string;
     maxTokens: number;
@@ -36,14 +36,9 @@ export const config: Config = {
     url: process.env.DATABASE_URL || '',
   },
   llm: {
-    provider: (process.env.LLM_PROVIDER || 'openai') as 'openai' | 'anthropic',
-    apiKey: process.env.LLM_API_KEY || 
-            process.env.OPENAI_API_KEY || 
-            process.env.CLAUDE_API_KEY || '',
-    model: process.env.LLM_MODEL || 
-           process.env.OPENAI_MODEL || 
-           process.env.CLAUDE_MODEL || 
-           'gpt-4',
+    provider: 'openai',
+    apiKey: process.env.OPENAI_API_KEY || '',
+    model: process.env.OPENAI_MODEL || 'gpt-4',
     maxTokens: parseInt(process.env.LLM_MAX_TOKENS || '500', 10),
     temperature: parseFloat(process.env.LLM_TEMPERATURE || '0.7'),
   },
@@ -61,11 +56,11 @@ export function validateConfig(options: { skipLLM?: boolean } = {}): void {
   const errors: string[] = [];
 
   if (!options.skipLLM && !config.llm.apiKey) {
-    errors.push('LLM API key is required (set OPENAI_API_KEY or CLAUDE_API_KEY)');
+    errors.push('OpenAI API key is required (set OPENAI_API_KEY)');
   }
 
-  if (!['openai', 'anthropic'].includes(config.llm.provider)) {
-    errors.push('LLM_PROVIDER must be either "openai" or "anthropic"');
+  if (config.llm.provider !== 'openai') {
+    errors.push('LLM_PROVIDER must be "openai"');
   }
 
   if (!config.database.url) {
