@@ -112,7 +112,8 @@ export class ChatService {
     } catch (error) {
       logger.error('Failed to process chat message', {
         conversationId,
-        error,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
       });
 
       // Publish failure event

@@ -65,27 +65,45 @@ export class OpenAIProvider implements ILLMProvider {
         error: error.message,
         code: error.code,
         type: error.type,
+        status: error.status,
       });
 
       if (error.code === 'insufficient_quota') {
-        throw new LLMError('OpenAI API quota exceeded. Please check your billing.');
+        throw new LLMError('AI service quota exceeded. Please contact support or try again later.');
       }
 
       if (error.code === 'invalid_api_key') {
-        throw new LLMError('Invalid OpenAI API key. Please check your configuration.');
+        throw new LLMError('AI service configuration error. Please contact support.');
       }
 
-      if (error.status === 429) {
-        throw new LLMError('OpenAI rate limit exceeded. Please try again later.');
+      if (error.status === 429 || error.code === 'rate_limit_exceeded') {
+        throw new LLMError('AI service is temporarily busy. Please try again in a moment.');
       }
 
       if (error.code === 'context_length_exceeded') {
         throw new LLMError('Conversation is too long. Please start a new conversation.');
       }
 
+      if (error.code === 'model_not_found') {
+        throw new LLMError('AI model unavailable. Please contact support.');
+      }
+
+      if (error.status === 503 || error.code === 'service_unavailable') {
+        throw new LLMError('AI service is temporarily unavailable. Please try again later.');
+      }
+
+      if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+        throw new LLMError('Cannot connect to AI service. Please try again later.');
+      }
+
+      if (error.message && error.message.toLowerCase().includes('timeout')) {
+        throw new LLMError('AI service request timed out. Please try again.');
+      }
+
+      // Generic fallback for unknown errors
       throw new LLMError(
-        `Failed to generate response: ${error.message}`,
-        { originalError: error.code || error.type }
+        'Unable to generate response at this time. Please try again.',
+        { originalError: error.code || error.type || 'UNKNOWN' }
       );
     }
   }

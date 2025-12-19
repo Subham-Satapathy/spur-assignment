@@ -12,6 +12,7 @@
   let isChatOpen = false;
   let questionCache = new Map();
   const CACHE_DURATION = 5 * 60 * 1000;
+  const MAX_MESSAGE_LENGTH = 2000;
 
   onMount(async () => {
     conversationId = localStorage.getItem('conversationId') || '';
@@ -40,6 +41,7 @@
       
       if (data.messages && data.messages.length > 0) {
         messages = data.messages.map(msg => ({
+          id: msg.id,
           text: msg.text,
           sender: msg.sender,
           timestamp: new Date(msg.timestamp)
@@ -77,13 +79,27 @@
   }
 
   async function sendMessage() {
-    if (!inputMessage.trim() || isLoading) return;
+    if (isLoading) return;
 
     const userMessage = inputMessage.trim();
+
+    // Validate empty message
+    if (!userMessage) {
+      error = 'Please enter a message before sending.';
+      return;
+    }
+
+    // Validate message length
+    if (userMessage.length > MAX_MESSAGE_LENGTH) {
+      error = `Message is too long. Please keep it under ${MAX_MESSAGE_LENGTH} characters. (Currently: ${userMessage.length})`;
+      return;
+    }
+
     inputMessage = '';
     error = '';
 
     messages = [...messages, {
+      id: `temp-user-${Date.now()}-${Math.random()}`,
       text: userMessage,
       sender: 'user',
       timestamp: new Date()
@@ -110,6 +126,7 @@
         }
 
         messages = [...messages, {
+          id: `temp-ai-cached-${Date.now()}-${Math.random()}`,
           text: responseText,
           sender: 'ai',
           timestamp: new Date()
@@ -149,6 +166,7 @@
       });
 
       messages = [...messages, {
+        id: `temp-ai-${Date.now()}-${Math.random()}`,
         text: data.reply,
         sender: 'ai',
         timestamp: new Date()
@@ -156,8 +174,24 @@
       scrollToBottom();
 
     } catch (err) {
-      error = err.message || 'Failed to send message. Please try again.';
-      console.error('Error:', err);
+      console.error('Error sending message:', err);
+      
+      // Show user-friendly error messages
+      if (err.message && err.message.includes('status: 400')) {
+        error = 'Invalid message. Please check your input and try again.';
+      } else if (err.message && err.message.includes('status: 429')) {
+        error = 'Too many requests. Please wait a moment and try again.';
+      } else if (err.message && err.message.includes('status: 500')) {
+        error = 'Server error. Our team has been notified. Please try again later.';
+      } else if (err.message && err.message.includes('status: 503')) {
+        error = 'Service temporarily unavailable. Please try again in a few moments.';
+      } else if (err.message && err.message.includes('NetworkError')) {
+        error = 'Network error. Please check your internet connection.';
+      } else if (err.message && err.message.includes('timeout')) {
+        error = 'Request timed out. Please try again.';
+      } else {
+        error = 'Unable to send message. Please try again.';
+      }
     } finally {
       isLoading = false;
     }
@@ -264,7 +298,12 @@
     </button>  </div>
 
   <div class="messages" bind:this={messagesContainer}>
-    {#if messages.length === 0}
+    {#if isLoadingHistory}
+      <div class="loading-history">
+        <div class="loader-spinner"></div>
+        <p>Loading conversation history...</p>
+      </div>
+    {:else if messages.length === 0}
       <div class="empty-state">
         <p>👋 Hello! How can I help you today?</p>
         <p class="suggestions">Try asking about:</p>
@@ -275,29 +314,29 @@
           <li on:click={() => sendSuggestion('What are your support hours?')}>Support hours</li>
         </ul>
       </div>
-    {/if}
+    {:else}
+      {#each messages as message (message.id)}
+        <div class="message {message.sender}">
+          <div class="message-content">
+            {message.text}
+          </div>
+          <div class="message-time">
+            {message.timestamp.toLocaleTimeString()}
+          </div>
+        </div>
+      {/each}
 
-    {#each messages as message (message.timestamp)}
-      <div class="message {message.sender}">
-        <div class="message-content">
-          {message.text}
+      {#if isLoading}
+        <div class="message ai loading">
+          <div class="message-content">
+            <span class="typing-indicator">
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+          </div>
         </div>
-        <div class="message-time">
-          {message.timestamp.toLocaleTimeString()}
-        </div>
-      </div>
-    {/each}
-
-    {#if isLoading}
-      <div class="message ai loading">
-        <div class="message-content">
-          <span class="typing-indicator">
-            <span></span>
-            <span></span>
-            <span></span>
-          </span>
-        </div>
-      </div>
+      {/if}
     {/if}
   </div>
 
@@ -308,14 +347,22 @@
   {/if}
 
   <form class="chat-input" on:submit|preventDefault={sendMessage}>
-    <input
-      type="text"
-      bind:value={inputMessage}
-      on:keypress={handleKeyPress}
-      placeholder="Type your message..."
-      disabled={isLoading}
-      autocomplete="off"
-    />
+    <div class="input-wrapper">
+      <input
+        type="text"
+        bind:value={inputMessage}
+        on:keypress={handleKeyPress}
+        placeholder="Type your message..."
+        disabled={isLoading}
+        autocomplete="off"
+        maxlength={MAX_MESSAGE_LENGTH}
+      />
+      {#if inputMessage.length > MAX_MESSAGE_LENGTH * 0.8}
+        <div class="char-counter" class:warning={inputMessage.length > MAX_MESSAGE_LENGTH * 0.9}>
+          {inputMessage.length}/{MAX_MESSAGE_LENGTH}
+        </div>
+      {/if}
+    </div>
     <button type="submit" disabled={isLoading || !inputMessage.trim()}>
       {isLoading ? '...' : 'Send'}
     </button>
@@ -692,6 +739,35 @@
     text-align: right;
   }
 
+  .loading-history {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    gap: 16px;
+  }
+
+  .loading-history p {
+    color: #6b6e7a;
+    font-size: 14px;
+    margin: 0;
+  }
+
+  .loader-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f0f1f3;
+    border-top: 4px solid #5e5adb;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
   .typing-indicator {
     display: flex;
     gap: 5px;
@@ -740,9 +816,30 @@
     border-top: 1px solid #2d3040;
   }
 
-  .chat-input input {
+  .input-wrapper {
     flex: 1;
+    position: relative;
+  }
+
+  .char-counter {
+    position: absolute;
+    right: 18px;
+    bottom: 16px;
+    font-size: 11px;
+    color: #6b6e7a;
+    background: #22252f;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .char-counter.warning {
+    color: #ffb347;
+  }
+
+  .chat-input input {
+    width: 100%;
     padding: 14px 18px;
+    padding-right: 60px;
     border: 1px solid #353845;
     border-radius: 24px;
     font-size: 15px;
