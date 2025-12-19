@@ -7,14 +7,21 @@ import { createChatRoutes } from './routes/chat.routes';
 import { createHealthRoutes } from './routes/health.routes';
 import { requestLogger } from './middleware/logger';
 import { errorHandler, notFoundHandler } from './middleware/error-handler';
+import { globalRateLimit } from './middleware/rate-limiter';
 
 export function createApp(chatService: ChatService, llmService: LLMService): Express {
   const app = express();
 
+  // Trust proxy - needed for rate limiting by IP on Render
+  app.set('trust proxy', 1);
+
   app.use(cors());
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json({ limit: '10kb' })); // Limit payload size
+  app.use(express.urlencoded({ extended: true, limit: '10kb' }));
   app.use(requestLogger);
+  
+  // Apply global rate limiting to all API routes
+  app.use('/chat', globalRateLimit);
 
   // Serve API routes first
   app.use('/health', createHealthRoutes(llmService));

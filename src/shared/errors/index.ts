@@ -52,6 +52,12 @@ export class RateLimitError extends DomainError {
   }
 }
 
+export class TooManyRequestsError extends DomainError {
+  constructor(message: string = 'Too many requests. Please try again later.') {
+    super(message, 'TOO_MANY_REQUESTS', 429);
+  }
+}
+
 export class ConfigurationError extends DomainError {
   constructor(message: string) {
     super(message, 'CONFIGURATION_ERROR', 500);

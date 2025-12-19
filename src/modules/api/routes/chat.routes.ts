@@ -2,9 +2,10 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { ChatService } from '../../chat';
 import { validateBody } from '../middleware/validation';
+import { chatRateLimit, conversationRateLimit } from '../middleware/rate-limiter';
 
 const sendMessageSchema = z.object({
-  message: z.string().min(1, 'Message cannot be empty'),
+  message: z.string().min(1, 'Message cannot be empty').max(2000, 'Message too long'),
   sessionId: z.string().uuid().optional(),
 });
 
@@ -13,10 +14,17 @@ export function createChatRoutes(chatService: ChatService): Router {
 
   router.post(
     '/message',
+    chatRateLimit,
     validateBody(sendMessageSchema),
     async (req: Request, res: Response, next) => {
       try {
         const { message, sessionId } = req.body;
+        
+        // Apply stricter rate limit for new conversations
+        if (!sessionId) {
+          conversationRateLimit(req, res, () => {});
+        }
+        
         const response = await chatService.sendMessage({ message, sessionId });
         
         res.json(response);
