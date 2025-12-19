@@ -16,7 +16,9 @@
     conversationId = localStorage.getItem('conversationId') || '';
     
     if (conversationId) {
+      isLoading = true;
       await loadConversationHistory();
+      isLoading = false;
     }
   });
 
@@ -34,13 +36,18 @@
       }
 
       const data = await response.json();
-      messages = data.messages.map(msg => ({
-        text: msg.text,
-        sender: msg.sender,
-        timestamp: new Date(msg.timestamp)
-      }));
       
-      scrollToBottom();
+      if (data.messages && data.messages.length > 0) {
+        messages = data.messages.map(msg => ({
+          text: msg.text,
+          sender: msg.sender,
+          timestamp: new Date(msg.timestamp)
+        }));
+        
+        if (isChatOpen) {
+          setTimeout(() => scrollToBottom(), 200);
+        }
+      }
     } catch (err) {
       console.error('Failed to load conversation history:', err);
       localStorage.removeItem('conversationId');
@@ -58,8 +65,8 @@
 
   function toggleChat() {
     isChatOpen = !isChatOpen;
-    if (isChatOpen) {
-      scrollToBottom();
+    if (isChatOpen && messages.length > 0) {
+      setTimeout(() => scrollToBottom(), 200);
     }
   }
 
