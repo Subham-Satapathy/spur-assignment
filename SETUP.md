@@ -36,14 +36,6 @@ This guide will walk you through setting up and running the AI Chat Support Agen
 
 6. Add credits to your account if needed (check [platform.openai.com/account/billing](https://platform.openai.com/account/billing))
 
-**Alternative: Use Claude (Anthropic)**
-
-If you prefer Claude instead of OpenAI:
-
-1. Go to [console.anthropic.com](https://console.anthropic.com)
-2. Create account and get API key
-3. Use `LLM_PROVIDER=claude` in your `.env` file
-
 ## Step 3: Update Your .env File
 
 Open the `.env` file in the project root and update these values:
@@ -56,9 +48,6 @@ PORT=3000
 # Database Configuration (NeonDB)
 # Paste your NeonDB connection string here:
 DATABASE_URL=postgresql://YOUR_USER:YOUR_PASSWORD@ep-xxxxx.region.aws.neon.tech/YOUR_DB?sslmode=require
-
-# LLM Provider Configuration
-LLM_PROVIDER=openai
 
 # OpenAI Configuration
 # Paste your OpenAI API key here:
@@ -244,17 +233,6 @@ Then re-run:
 ```bash
 npm run db:seed
 ```
-
-### Switch to Claude
-
-Update `.env`:
-```env
-LLM_PROVIDER=claude
-CLAUDE_API_KEY=sk-ant-your-key
-CLAUDE_MODEL=claude-3-sonnet-20240229
-```
-
-Restart the server.
 
 ### View Logs
 

@@ -18,7 +18,7 @@ Use whatever lets you move quickly and write clean code. Don’t integrate Shopi
 
 The Assignment: AI Live Chat Agent
 Goal
-Build a small web app that simulates a customer support chat where an AI agent answers user questions using a real LLM API (OpenAI / Claude / etc.).
+Build a small web app that simulates a customer support chat where an AI agent answers user questions using a real LLM API (OpenAI).
 Core User Flow
 User opens a web page with a chat widget/panel.
 User types a message (“What’s your return policy?”, “Do you ship to USA?”, etc.).
@@ -49,7 +49,7 @@ Persist every message (user + AI) to a database.
 Associate messages with a session/conversation.
 Call a real LLM API to generate the reply.
 3. LLM Integration (Required)
-Integrate with any major LLM provider (e.g. OpenAI, Anthropic / Claude, etc.).
+Integrate with OpenAI LLM provider.
 Use an API key via environment variables (don’t commit secrets).
 Wrap the LLM call behind a function/service, e.g. generateReply(history, userMessage).
 Prompt design is up to you, but do something simple like:
@@ -107,7 +107,7 @@ Once ready, submit by filling this form.
 README Must Include
 How to run it locally, step by step.
 How to set up DB (migrations/seed).
-How to configure env vars (e.g. OPENAI_API_KEY or ANTHROPIC_API_KEY).
+How to configure env vars (e.g. OPENAI_API_KEY).
 Short architecture overview:
 How you structured the backend (layers, modules).
 Any interesting design decisions.

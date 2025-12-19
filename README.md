@@ -12,7 +12,7 @@ src/
 │   ├── api/            # HTTP routes, validation, error handling
 │   ├── chat/           # Orchestration layer - coordinates operations
 │   ├── conversation/   # Conversation & message persistence  
-│   ├── llm/            # LLM provider abstraction (OpenAI/Claude)
+│   ├── llm/            # LLM provider (OpenAI)
 │   ├── knowledge/      # FAQ/domain knowledge management
 │   └── messaging/      # Event bus for cross-module communication
 ├── shared/
@@ -30,7 +30,7 @@ src/
 
 - **Backend**: Node.js 18+, TypeScript (strict mode), Express 4.18
 - **Database**: NeonDB (serverless PostgreSQL) with Drizzle ORM 0.45
-- **LLM Providers**: OpenAI (GPT-4), Anthropic Claude  
+- **LLM Provider**: OpenAI (GPT-4)  
 - **Frontend**: Vanilla JavaScript chat UI
 - **Validation**: Zod schemas
 - **Logging**: Winston
@@ -44,7 +44,7 @@ src/
 
 ## 🚀 Features
 
-- ✅ Real LLM Integration (OpenAI GPT-4 & Anthropic Claude)
+- ✅ Real LLM Integration (OpenAI GPT-4)
 - ✅ Serverless PostgreSQL (NeonDB) with Drizzle ORM
 - ✅ Conversation persistence with full history
 - ✅ Knowledge base for context-aware responses
@@ -59,8 +59,7 @@ src/
 - **Node.js** 18+ (LTS recommended)
 - **npm** or yarn
 - **NeonDB account** (free tier available at [neon.tech](https://neon.tech))
-- **OpenAI API key** ([platform.openai.com](https://platform.openai.com)) OR
-- **Anthropic API key** ([console.anthropic.com](https://console.anthropic.com))
+- **OpenAI API key** ([platform.openai.com](https://platform.openai.com))
 
 ## 🛠️ Quick Start
 
@@ -94,16 +93,9 @@ PORT=3000
 # Database (NeonDB)
 DATABASE_URL=postgresql://your-user:your-password@ep-xxx.region.aws.neon.tech/your-db?sslmode=require
 
-# LLM Provider
-LLM_PROVIDER=openai
-
-# OpenAI (if using OpenAI)
+# OpenAI
 OPENAI_API_KEY=sk-your-actual-key-here
 OPENAI_MODEL=gpt-4
-
-# Claude (if using Anthropic)
-# CLAUDE_API_KEY=sk-ant-your-key-here
-# CLAUDE_MODEL=claude-3-sonnet-20240229
 ```
 
 ### 4. Initialize Database Schema
@@ -325,27 +317,9 @@ curl http://localhost:3000/api/conversations/$CONV_ID/messages
 | `NODE_ENV` | No | `development` | Environment mode |
 | `PORT` | No | `3000` | Server port |
 | `DATABASE_URL` | Yes | - | NeonDB connection string |
-| `LLM_PROVIDER` | Yes | `openai` | LLM provider ('openai' or 'claude') |
-| `OPENAI_API_KEY` | If using OpenAI | - | OpenAI API key |
+| `OPENAI_API_KEY` | Yes | - | OpenAI API key |
 | `OPENAI_MODEL` | No | `gpt-4` | OpenAI model |
-| `CLAUDE_API_KEY` | If using Claude | - | Anthropic API key |
-| `CLAUDE_MODEL` | No | `claude-3-sonnet-20240229` | Claude model |
 | `LOG_LEVEL` | No | `info` | Winston log level |
-
-### Switching LLM Providers
-
-To switch from OpenAI to Claude:
-
-1. Update `.env`:
-   ```env
-   LLM_PROVIDER=claude
-   CLAUDE_API_KEY=sk-ant-your-key-here
-   CLAUDE_MODEL=claude-3-sonnet-20240229
-   ```
-
-2. Restart the server
-
-The provider abstraction allows seamless switching without code changes.
 
 ## 📖 Module Documentation
 
@@ -359,9 +333,8 @@ Orchestration layer that coordinates:
 
 ### LLM Module (`src/modules/llm`)
 
-Provider abstraction supporting:
-- **OpenAIProvider**: GPT-4, GPT-3.5 Turbo
-- **AnthropicProvider**: Claude 3 Sonnet
+OpenAI integration supporting:
+- **GPT-4**, GPT-3.5 Turbo
 
 Implements:
 - System prompt building
