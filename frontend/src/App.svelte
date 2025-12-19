@@ -5,6 +5,7 @@
   let messages = [];
   let inputMessage = '';
   let isLoading = false;
+  let isLoadingHistory = false;
   let error = '';
   let conversationId = '';
   let messagesContainer;
@@ -16,9 +17,9 @@
     conversationId = localStorage.getItem('conversationId') || '';
     
     if (conversationId) {
-      isLoading = true;
+      isLoadingHistory = true;
       await loadConversationHistory();
-      isLoading = false;
+      isLoadingHistory = false;
     }
   });
 
