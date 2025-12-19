@@ -9,12 +9,44 @@
   let conversationId = '';
   let messagesContainer;
   let isChatOpen = false;
-  let questionCache = new Map(); // Cache for question-answer pairs with repeat count
-  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+  let questionCache = new Map();
+  const CACHE_DURATION = 5 * 60 * 1000;
 
-  onMount(() => {
+  onMount(async () => {
     conversationId = localStorage.getItem('conversationId') || '';
+    
+    if (conversationId) {
+      await loadConversationHistory();
+    }
   });
+
+  async function loadConversationHistory() {
+    try {
+      const response = await fetch(`${API_URL}/chat/conversation/${conversationId}`);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          localStorage.removeItem('conversationId');
+          conversationId = '';
+          return;
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      messages = data.messages.map(msg => ({
+        text: msg.text,
+        sender: msg.sender,
+        timestamp: new Date(msg.timestamp)
+      }));
+      
+      scrollToBottom();
+    } catch (err) {
+      console.error('Failed to load conversation history:', err);
+      localStorage.removeItem('conversationId');
+      conversationId = '';
+    }
+  }
 
   function scrollToBottom() {
     if (messagesContainer) {
