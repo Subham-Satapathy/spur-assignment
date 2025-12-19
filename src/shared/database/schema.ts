@@ -1,8 +1,5 @@
 import { pgTable, uuid, text, timestamp, varchar, integer, boolean, jsonb } from 'drizzle-orm/pg-core';
 
-/**
- * Conversations table
- */
 export const conversations = pgTable('conversations', {
   id: uuid('id').primaryKey().defaultRandom(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -11,9 +8,6 @@ export const conversations = pgTable('conversations', {
   status: varchar('status', { length: 20 }).notNull().default('active'),
 });
 
-/**
- * Messages table
- */
 export const messages = pgTable('messages', {
   id: uuid('id').primaryKey().defaultRandom(),
   conversationId: uuid('conversation_id')
@@ -25,9 +19,6 @@ export const messages = pgTable('messages', {
   metadata: jsonb('metadata'),
 });
 
-/**
- * Knowledge entries table
- */
 export const knowledgeEntries = pgTable('knowledge_entries', {
   id: uuid('id').primaryKey().defaultRandom(),
   category: varchar('category', { length: 100 }).notNull(),

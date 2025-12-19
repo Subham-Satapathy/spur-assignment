@@ -9,9 +9,6 @@ import { createApp } from './modules/api';
 import { config } from './shared/config';
 import logger from './shared/logger';
 
-/**
- * Application context holding all services
- */
 export interface AppContext {
   app: Express;
   chatService: ChatService;
@@ -21,27 +18,17 @@ export interface AppContext {
   eventBus: EventBus;
 }
 
-/**
- * Bootstrap the application
- * - Initialize database
- * - Create all services with dependency injection
- * - Wire up Express app
- */
 export async function bootstrapApp(): Promise<AppContext> {
   logger.info('Bootstrapping application...');
 
-  // Step 1: Initialize database
   const db = createDatabase();
   logger.info('Database connection created');
 
-  // Step 2: Create repositories
   const conversationRepository = new ConversationRepository(db);
   const knowledgeRepository = new KnowledgeRepository(db);
 
-  // Step 3: Create event bus
   const eventBus = new EventBus();
 
-  // Step 4: Create services
   const conversationService = new ConversationService(conversationRepository);
   const knowledgeService = new KnowledgeService(knowledgeRepository);
   const llmService = new LLMService(
@@ -52,7 +39,6 @@ export async function bootstrapApp(): Promise<AppContext> {
     config.llm.temperature
   );
 
-  // Step 5: Create chat orchestrator
   const chatService = new ChatService(
     conversationService,
     llmService,
@@ -60,10 +46,7 @@ export async function bootstrapApp(): Promise<AppContext> {
     eventBus
   );
 
-  // Step 6: Create Express app
   const app = createApp(chatService, llmService);
-
-  // Step 7: Subscribe to events for logging (example)
   eventBus.subscribe('MESSAGE_RECEIVED', (event) => {
     logger.info('Event: User message received', {
       conversationId: event.payload.conversationId,

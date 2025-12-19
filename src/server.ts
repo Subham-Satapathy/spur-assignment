@@ -3,20 +3,14 @@ import { validateConfig, config } from './shared/config';
 import { closeDatabase } from './shared/database';
 import logger from './shared/logger';
 
-/**
- * Start the server
- */
 async function start() {
   try {
-    // Validate configuration
     logger.info('Validating configuration...');
     validateConfig();
     logger.info('Configuration validated successfully');
 
-    // Bootstrap application
     const { app } = await bootstrapApp();
 
-    // Start server
     const server = app.listen(config.server.port, () => {
       logger.info(`Server started successfully`, {
         port: config.server.port,
@@ -27,7 +21,6 @@ async function start() {
       logger.info(`Chat API: http://localhost:${config.server.port}/chat/message`);
     });
 
-    // Graceful shutdown
     const shutdown = async (signal: string) => {
       logger.info(`${signal} received, shutting down gracefully...`);
 
@@ -38,7 +31,6 @@ async function start() {
         process.exit(0);
       });
 
-      // Force shutdown after 10 seconds
       setTimeout(() => {
         logger.error('Forced shutdown after timeout');
         process.exit(1);
@@ -53,5 +45,4 @@ async function start() {
   }
 }
 
-// Start the server
 start();

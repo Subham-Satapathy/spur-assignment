@@ -1,6 +1,5 @@
 import dotenv from 'dotenv';
 
-// Load environment variables
 dotenv.config();
 
 export interface Config {
@@ -58,10 +57,6 @@ export const config: Config = {
   },
 };
 
-/**
- * Validate configuration on application startup
- * @throws Error if critical configuration is missing
- */
 export function validateConfig(options: { skipLLM?: boolean } = {}): void {
   const errors: string[] = [];
 

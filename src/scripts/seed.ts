@@ -1,10 +1,5 @@
 #!/usr/bin/env node
 
-/**
- * Database seeding script
- * Usage: npm run db:seed
- */
-
 import { createDatabase, closeDatabase, getDatabase } from '../shared/database';
 import { knowledgeEntries } from '../shared/database/schema';
 import { validateConfig } from '../shared/config';
@@ -18,7 +13,6 @@ interface SeedData {
 }
 
 const knowledgeSeeds: SeedData[] = [
-  // Shipping Policy
   {
     category: 'shipping',
     title: 'Shipping Regions',
@@ -41,7 +35,6 @@ const knowledgeSeeds: SeedData[] = [
     priority: 8,
   },
 
-  // Return & Refund Policy
   {
     category: 'returns',
     title: 'Return Window',
@@ -71,7 +64,6 @@ const knowledgeSeeds: SeedData[] = [
     priority: 7,
   },
 
-  // Support Hours
   {
     category: 'support',
     title: 'Customer Support Hours',
@@ -87,7 +79,6 @@ const knowledgeSeeds: SeedData[] = [
     priority: 9,
   },
 
-  // Payment
   {
     category: 'payment',
     title: 'Accepted Payment Methods',
@@ -103,7 +94,7 @@ const knowledgeSeeds: SeedData[] = [
     priority: 8,
   },
 
-  // Product Information
+
   {
     category: 'products',
     title: 'Product Availability',
@@ -147,13 +138,10 @@ async function main() {
   try {
     logger.info('Starting database seeding...');
 
-    // Validate configuration (skip LLM check for seeding)
     validateConfig({ skipLLM: true });
 
-    // Initialize database connection
     createDatabase();
 
-    // Seed knowledge base
     await seedKnowledge();
 
     logger.info('Database seeding completed successfully');

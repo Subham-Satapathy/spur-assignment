@@ -6,9 +6,6 @@ import logger from '../../shared/logger';
 export class ConversationService {
   constructor(private repository: ConversationRepository) {}
 
-  /**
-   * Create a new conversation
-   */
   async createConversation(metadata?: Record<string, any>): Promise<Conversation> {
     logger.debug('Creating new conversation', { metadata });
     const conversation = await this.repository.createConversation(metadata);
@@ -16,9 +13,6 @@ export class ConversationService {
     return conversation;
   }
 
-  /**
-   * Get conversation by ID
-   */
   async getConversation(id: string): Promise<Conversation> {
     const conversation = await this.repository.findById(id);
     if (!conversation) {
@@ -27,24 +21,17 @@ export class ConversationService {
     return conversation;
   }
 
-  /**
-   * Check if conversation exists
-   */
   async conversationExists(id: string): Promise<boolean> {
     const conversation = await this.repository.findById(id);
     return conversation !== null;
   }
 
-  /**
-   * Add a message to a conversation
-   */
   async addMessage(
     conversationId: string,
     sender: MessageSender,
     text: string,
     metadata?: Record<string, any>
   ): Promise<Message> {
-    // Verify conversation exists
     await this.getConversation(conversationId);
 
     logger.debug('Adding message to conversation', {
@@ -69,11 +56,7 @@ export class ConversationService {
     return message;
   }
 
-  /**
-   * Get conversation history
-   */
   async getHistory(conversationId: string, limit?: number): Promise<Message[]> {
-    // Verify conversation exists
     await this.getConversation(conversationId);
 
     const messages = limit
@@ -88,9 +71,6 @@ export class ConversationService {
     return messages;
   }
 
-  /**
-   * Get recent messages for LLM context
-   */
   async getRecentMessagesForContext(
     conversationId: string,
     limit: number
@@ -103,17 +83,12 @@ export class ConversationService {
     }));
   }
 
-  /**
-   * Close a conversation
-   */
+
   async closeConversation(id: string): Promise<void> {
     await this.repository.closeConversation(id);
     logger.info('Conversation closed', { conversationId: id });
   }
 
-  /**
-   * Update conversation metadata
-   */
   async updateMetadata(id: string, metadata: Record<string, any>): Promise<void> {
     await this.repository.updateMetadata(id, metadata);
     logger.debug('Conversation metadata updated', { conversationId: id });

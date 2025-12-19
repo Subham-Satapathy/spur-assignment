@@ -6,9 +6,6 @@ import * as schema from './schema';
 
 let db: ReturnType<typeof drizzle> | null = null;
 
-/**
- * Create and configure Drizzle database instance
- */
 export function createDatabase() {
   if (db) {
     return db;
@@ -25,9 +22,6 @@ export function createDatabase() {
   return db;
 }
 
-/**
- * Get existing database instance
- */
 export function getDatabase() {
   if (!db) {
     throw new Error('Database not initialized. Call createDatabase() first.');
@@ -35,9 +29,6 @@ export function getDatabase() {
   return db;
 }
 
-/**
- * Close database connection (NeonDB is serverless, no pool to close)
- */
 export async function closeDatabase(): Promise<void> {
   if (db) {
     db = null;
@@ -45,9 +36,6 @@ export async function closeDatabase(): Promise<void> {
   }
 }
 
-/**
- * Test database connection
- */
 export async function testDatabaseConnection(): Promise<boolean> {
   try {
     const database = getDatabase();

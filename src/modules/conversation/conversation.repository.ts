@@ -8,9 +8,6 @@ import logger from '../../shared/logger';
 export class ConversationRepository {
   constructor(private db: NeonHttpDatabase<any>) {}
 
-  /**
-   * Create a new conversation
-   */
   async createConversation(metadata?: Record<string, any>): Promise<Conversation> {
     try {
       const [conversation] = await this.db
@@ -28,9 +25,6 @@ export class ConversationRepository {
     }
   }
 
-  /**
-   * Find conversation by ID
-   */
   async findById(id: string): Promise<Conversation | null> {
     try {
       const [conversation] = await this.db
@@ -46,9 +40,6 @@ export class ConversationRepository {
     }
   }
 
-  /**
-   * Update conversation metadata
-   */
   async updateMetadata(id: string, metadata: Record<string, any>): Promise<void> {
     try {
       const result = await this.db
@@ -70,9 +61,6 @@ export class ConversationRepository {
     }
   }
 
-  /**
-   * Close a conversation
-   */
   async closeConversation(id: string): Promise<void> {
     try {
       const result = await this.db
@@ -94,9 +82,6 @@ export class ConversationRepository {
     }
   }
 
-  /**
-   * Add a message to a conversation
-   */
   async addMessage(
     conversationId: string,
     sender: MessageSender,
@@ -104,7 +89,6 @@ export class ConversationRepository {
     metadata?: Record<string, any>
   ): Promise<Message> {
     try {
-      // Insert message
       const [message] = await this.db
         .insert(messages)
         .values({
@@ -115,7 +99,6 @@ export class ConversationRepository {
         })
         .returning();
 
-      // Update conversation's updated_at timestamp
       await this.db
         .update(conversations)
         .set({ updatedAt: new Date() })
@@ -128,9 +111,6 @@ export class ConversationRepository {
     }
   }
 
-  /**
-   * Get messages for a conversation
-   */
   async getMessages(conversationId: string, options?: QueryOptions): Promise<Message[]> {
     try {
       const limit = options?.limit || 100;
@@ -151,9 +131,6 @@ export class ConversationRepository {
     }
   }
 
-  /**
-   * Get recent messages for a conversation
-   */
   async getRecentMessages(conversationId: string, limit: number = 10): Promise<Message[]> {
     try {
       const result = await this.db
@@ -163,7 +140,6 @@ export class ConversationRepository {
         .orderBy(desc(messages.createdAt))
         .limit(limit);
 
-      // Return in chronological order (oldest first)
       return result.reverse().map(this.mapMessageRow);
     } catch (error) {
       logger.error('Failed to get recent messages', { error, conversationId });
@@ -171,9 +147,6 @@ export class ConversationRepository {
     }
   }
 
-  /**
-   * Map database row to Conversation object
-   */
   private mapConversationRow(row: any): Conversation {
     return {
       id: row.id,
@@ -184,9 +157,6 @@ export class ConversationRepository {
     };
   }
 
-  /**
-   * Map database row to Message object
-   */
   private mapMessageRow(row: any): Message {
     return {
       id: row.id,

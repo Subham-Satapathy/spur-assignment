@@ -1,9 +1,6 @@
 import { EventHandler, AllDomainEvents } from './events.types';
 import logger from '../../shared/logger';
 
-/**
- * Simple in-memory event bus for cross-module communication
- */
 export class EventBus {
   private handlers: Map<string, Set<EventHandler>>;
 
@@ -11,9 +8,6 @@ export class EventBus {
     this.handlers = new Map();
   }
 
-  /**
-   * Subscribe to an event type
-   */
   subscribe<T extends AllDomainEvents>(
     eventType: T['type'],
     handler: EventHandler<T>
@@ -27,16 +21,12 @@ export class EventBus {
 
     logger.debug('Event handler subscribed', { eventType });
 
-    // Return unsubscribe function
     return () => {
       handlers.delete(handler as EventHandler);
       logger.debug('Event handler unsubscribed', { eventType });
     };
   }
 
-  /**
-   * Publish an event to all subscribers
-   */
   async publish<T extends AllDomainEvents>(event: T): Promise<void> {
     const handlers = this.handlers.get(event.type);
 
@@ -50,7 +40,6 @@ export class EventBus {
       handlerCount: handlers.size,
     });
 
-    // Execute all handlers (in parallel for async handlers)
     const promises = Array.from(handlers).map(async (handler) => {
       try {
         await handler(event);
@@ -65,9 +54,6 @@ export class EventBus {
     await Promise.all(promises);
   }
 
-  /**
-   * Clear all handlers (useful for testing)
-   */
   clear(): void {
     this.handlers.clear();
     logger.debug('Event bus cleared');

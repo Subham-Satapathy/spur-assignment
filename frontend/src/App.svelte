@@ -43,7 +43,6 @@
     inputMessage = '';
     error = '';
 
-    // Add user message
     messages = [...messages, {
       text: userMessage,
       sender: 'user',
@@ -51,21 +50,17 @@
     }];
     scrollToBottom();
 
-    // Check cache for recent identical question
     const normalizedQuestion = userMessage.toLowerCase().trim();
     const cached = questionCache.get(normalizedQuestion);
     const now = Date.now();
 
     if (cached && (now - cached.timestamp) < CACHE_DURATION) {
-      // Increment repeat count
       cached.repeatCount = (cached.repeatCount || 1) + 1;
       questionCache.set(normalizedQuestion, cached);
 
-      // Use cached answer with smart variations
       setTimeout(() => {
         let responseText = cached.answer;
         
-        // Add helpful context for repeated questions
         if (cached.repeatCount === 2) {
           responseText = "I see you're asking about this again. Here's the information:\n\n" + cached.answer + "\n\nNeed more details or have a specific concern?";
         } else if (cached.repeatCount === 3) {
@@ -80,7 +75,7 @@
           timestamp: new Date()
         }];
         scrollToBottom();
-      }, 300); // Small delay to feel natural
+      }, 300);
       return;
     }
 
@@ -107,7 +102,6 @@
         localStorage.setItem('conversationId', conversationId);
       }
 
-      // Cache the question-answer pair with initial repeat count
       questionCache.set(normalizedQuestion, {
         answer: data.reply,
         timestamp: now,
