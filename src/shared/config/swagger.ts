@@ -17,7 +17,7 @@ export const swaggerOptions: Options = {
         description: 'Development server',
       },
       {
-        url: 'https://your-production-url.com',
+        url: 'https://spur-shop.subhs.xyz',
         description: 'Production server',
       },
     ],
