@@ -1,452 +1,625 @@
-# AI Chat Support Agent - Modular Monolith
+# AI-Powered Customer Support Chat
 
-A production-ready AI-powered customer support chat system built with TypeScript, Express, NeonDB (serverless PostgreSQL), and Drizzle ORM using a **Modular Monolith architecture**.
+An intelligent, production-ready customer support chatbot built with a **modular monolith architecture**. Features multi-channel support readiness, tool/function calling infrastructure, and extensible LLM provider integration.
 
-## 🏗️ Architecture Overview
+---
 
-The application is structured into **6 independent modules**:
+## Quick Start
 
-```
-src/
-├── modules/
-│   ├── api/            # HTTP routes, validation, error handling
-│   ├── chat/           # Orchestration layer - coordinates operations
-│   ├── conversation/   # Conversation & message persistence  
-│   ├── llm/            # LLM provider (OpenAI)
-│   ├── knowledge/      # FAQ/domain knowledge management
-│   └── messaging/      # Event bus for cross-module communication
-├── shared/
-│   ├── config/         # Environment configuration
-│   ├── database/       # NeonDB connection & Drizzle schema
-│   ├── redis/          # Redis client with graceful fallback
-│   ├── errors/         # Custom error classes
-│   ├── logger/         # Winston structured logging
-│   └── types/          # Shared TypeScript interfaces
-├── scripts/            # Database seed & validation scripts
-├── app.ts              # Application bootstrap & dependency injection
-└── server.ts           # HTTP server entry point
-```
+### Prerequisites
 
-### Key Technologies
+- **Node.js** 18+ and npm
+- **PostgreSQL** database (NeonDB, Railway, or local)
+- **OpenAI API Key** (for GPT-4/GPT-3.5)
+- Optional: **Redis** (for caching)
 
-- **Backend**: Node.js 18+, TypeScript (strict mode), Express 4.18
-- **Database**: NeonDB (serverless PostgreSQL) with Drizzle ORM 0.45
-- **Cache**: Redis (optional, with graceful fallback)
-- **LLM Provider**: OpenAI (GPT-4)  
-- **Frontend**: Vanilla JavaScript chat UI
-- **Validation**: Zod schemas
-- **Logging**: Winston
+---
 
-### Architectural Patterns
+## Installation & Setup
 
-- **Dependency Injection**: Constructor injection for testability
-- **Repository Pattern**: Data access layer abstraction
-- **Event-Driven**: Internal event bus for module decoupling
-- **Provider Pattern**: Swappable LLM implementations
-
-## 🚀 Features
-
-- ✅ Real LLM Integration (OpenAI GPT-4)
-- ✅ Serverless PostgreSQL (NeonDB) with Drizzle ORM
-- ✅ **Redis Caching** with graceful fallback (optimized for free tier)
-- ✅ Distributed rate limiting via Redis
-- ✅ Conversation persistence with full history
-- ✅ Knowledge base for context-aware responses
-- ✅ Clean chat UI (no framework overhead)
-- ✅ Robust error handling & validation
-- ✅ Health checks for database, LLM & Redis
-- ✅ Structured logging
-- ✅ Full TypeScript type safety
-
-## 📋 Prerequisites
-
-- **Node.js** 18+ (LTS recommended)
-- **npm** or yarn
-- **NeonDB account** (free tier available at [neon.tech](https://neon.tech))
-- **OpenAI API key** ([platform.openai.com](https://platform.openai.com))
-- **Redis instance** (optional - free tier at [Render](https://render.com) or local)
-
-## 🛠️ Quick Start
-
-### 1. Install Dependencies
+### 1. Clone and Install Dependencies
 
 ```bash
+# Clone repository
+cd "Spur Assignment"
+
+# Install backend dependencies
 npm install
+
+# Install frontend dependencies
+cd frontend
+npm install
+cd ..
 ```
 
-### 2. Set up NeonDB Database
+### 2. Database Setup
 
-1. Create account at [neon.tech](https://neon.tech)
-2. Create new project in NeonDB console
-3. Copy connection string (format: `postgresql://user:password@ep-xxx.region.aws.neon.tech/dbname?sslmode=require`)
+#### Option A: Using NeonDB (Recommended for Production)
 
-### 3. Configure Environment
+1. Create a free account at [neon.tech](https://neon.tech)
+2. Create a new project and database
+3. Copy the connection string (it looks like `postgresql://user:pass@host.neon.tech/dbname`)
 
-Copy the example environment file:
+#### Option B: Local PostgreSQL
 
 ```bash
+# Install PostgreSQL (macOS)
+brew install postgresql@15
+brew services start postgresql@15
+
+# Create database
+createdb ai_chat_support
+```
+
+### 3. Environment Configuration
+
+Create a `.env` file in the project root:
+
+```bash
+# Copy example env file
 cp .env.example .env
 ```
 
-Edit `.env` with your credentials:
+Edit `.env` with your configuration:
 
 ```env
 # Server
-NODE_ENV=development
 PORT=3000
+NODE_ENV=development
 
-# Database (NeonDB)
-DATABASE_URL=postgresql://your-user:your-password@ep-xxx.region.aws.neon.tech/your-db?sslmode=require
+# Database (use your NeonDB or local PostgreSQL URL)
+DATABASE_URL=postgresql://user:password@host:5432/dbname?sslmode=require
 
-# OpenAI
-OPENAI_API_KEY=sk-your-actual-key-here
+# OpenAI API (REQUIRED)
+OPENAI_API_KEY=sk-your-openai-api-key-here
 OPENAI_MODEL=gpt-4
 
-# Redis (Optional - for caching & rate limiting)
-REDIS_ENABLED=true
-REDIS_URL=redis://your-redis-host:6379
+# Optional: Advanced LLM Configuration
+LLM_MAX_TOKENS=500
+LLM_TEMPERATURE=0.7
+
+# Optional: Redis (for production caching)
+REDIS_ENABLED=false
+REDIS_URL=redis://localhost:6379
+
+# Application Settings
+MAX_MESSAGE_LENGTH=2000
+MAX_CONVERSATION_HISTORY=10
+
+# Feature Flags (disabled by default - architecture in place)
+ENABLE_TOOLS=false
+TELEGRAM_ENABLED=false
+WHATSAPP_ENABLED=false
 ```
 
-### 4. Initialize Database Schema
-
-Push the Drizzle schema to NeonDB:
+### 4. Database Migration & Seeding
 
 ```bash
+# Push schema to database (creates tables)
 npm run db:push
-```
 
-This creates the following tables:
-- `conversations` - Chat session tracking
-- `messages` - Message history
-- `knowledge_entries` - FAQ/knowledge base
-
-### 5. Seed Knowledge Base
-
-Populate the database with sample FAQ data:
-
-```bash
+# Seed with sample knowledge base data
 npm run db:seed
+
+# Or do both in one command
+npm run db:setup
 ```
 
-This adds FAQs for:
+This will create:
+- `conversations` table
+- `messages` table
+- `knowledge_entries` table
+- `users` table (for future multi-channel support)
+- `tool_executions` table (for future AI agent tools)
+
+Sample knowledge base includes:
 - Shipping policies
-- Returns & refunds
+- Return & refund process
 - Payment methods
-- Support hours
+- Support hours & contact info
 
-### 6. Build & Start
+### 5. Run the Application
 
-Build TypeScript:
+#### Development Mode (with hot reload)
 
 ```bash
-npm run build
+# Run both backend and frontend
+npm run dev:all
+
+# Or run separately
+npm run dev              # Backend only (port 3000)
+npm run dev:frontend     # Frontend only (port 5173)
 ```
 
-Start the development server:
+#### Production Mode
 
 ```bash
-npm run dev
-```
+# Build everything
+npm run build:all
 
-Or run in production mode:
-
-```bash
+# Start server
 npm start
 ```
 
-The server will start on `http://localhost:3000`
+**Open your browser**: http://localhost:5173 (dev) or http://localhost:3000 (production)
 
-### 7. Access Chat UI
+---
 
-Open your browser to:
+## Architecture Overview
+
+### **Modular Monolith Structure**
+
+The backend follows a **feature-based modular monolith** architecture with clear separation of concerns:
 
 ```
-http://localhost:3000
+src/
+├── modules/              # Feature modules (independently testable)
+│   ├── api/             # HTTP layer (Express routes, middleware)
+│   ├── chat/            # Chat orchestration service
+│   ├── conversation/    # Conversation & message persistence
+│   ├── knowledge/       # Knowledge base management
+│   ├── llm/             # LLM provider abstraction
+│   ├── messaging/       # Event bus (pub/sub)
+│   ├── channels/        # Multi-channel support (WEB, Telegram, WhatsApp)
+│   └── tools/           # AI function calling tools
+├── shared/              # Cross-cutting concerns
+│   ├── config/         # Configuration management
+│   ├── database/       # Database client (Drizzle ORM)
+│   ├── errors/         # Custom error classes
+│   ├── logger/         # Winston logging
+│   ├── redis/          # Redis client (caching)
+│   └── types/          # Shared TypeScript types
+└── scripts/            # Utility scripts (migration, seed)
 ```
 
-You'll see the chat interface where you can:
-- Ask questions about shipping, returns, payments, etc.
-- Get AI-powered responses using your knowledge base
-- View conversation history
+### **Layered Architecture**
 
-## 📚 Available Scripts
+1. **API Layer** (`modules/api`)
+   - Express routes, middleware
+   - Request validation (Zod)
+   - Rate limiting, error handling
 
-| Script | Description |
-|--------|-------------|
-| `npm run dev` | Start development server with hot reload (tsx watch) |
-| `npm start` | Start production server |
-| `npm run build` | Compile TypeScript to JavaScript |
-| `npm run db:generate` | Generate Drizzle migration files from schema |
-| `npm run db:push` | Push schema directly to NeonDB (development) |
-| `npm run db:migrate` | Apply migrations (production) |
-| `npm run db:seed` | Seed knowledge base with FAQ data |
+2. **Service Layer** (`modules/*/service.ts`)
+   - Business logic
+   - Orchestration between modules
+   - Transaction management
 
-## 🔌 API Endpoints
+3. **Repository Layer** (`modules/*/repository.ts`)
+   - Database access (Drizzle ORM)
+   - Query optimization
+   - Data mapping
 
-### Health Check
+4. **Domain Layer** (`shared/types`)
+   - Type definitions
+   - Business entities
+   - Validation rules
 
-```http
-GET /health
+### **Key Design Decisions**
+
+#### **Interface-Based LLM Provider**
+```typescript
+interface ILLMProvider {
+  generateReply(context: ConversationContext, tools?: ToolDefinition[]): Promise<LLMResponse>;
+  healthCheck(): Promise<boolean>;
+}
+```
+- **Why**: Easy to swap OpenAI → Anthropic → Local models
+- **Factory Pattern**: `LLMProviderFactory` creates providers from config
+- **Benefit**: Zero code changes to switch AI providers
+
+#### **Channel Abstraction for Multi-Platform**
+```typescript
+interface IChannel {
+  type: ChannelType;
+  sendMessage(message: OutgoingMessage): Promise<void>;
+  parseIncomingMessage(payload: any): IncomingMessage | null;
+  verifyWebhook(payload: any, signature?: string): boolean;
+}
+```
+- **Why**: Designed for Telegram, WhatsApp, Instagram integration
+- **Current**: Web channel fully functional
+- **Future**: Enable other channels via env vars + API keys
+- **Benefit**: Each platform isolated, no cross-contamination
+
+#### **Tool Registry for AI Agent Capabilities**
+```typescript
+class ToolRegistry {
+  register(tool: ITool): void;
+  execute(name: string, params: any): Promise<any>;
+  getAllDefinitions(): ToolDefinition[];
+}
+```
+- **Why**: Enables AI to call functions (check inventory, track orders, etc.)
+- **Architecture**: Ready but disabled by default (`ENABLE_TOOLS=false`)
+- **Benefit**: Add Shopify/Stripe integrations without touching core logic
+
+#### **Event-Driven Communication**
+```typescript
+eventBus.publish({ type: 'MESSAGE_RECEIVED', payload: { ... } });
+eventBus.subscribe('MESSAGE_RECEIVED', handler);
+```
+- **Why**: Decouples modules (analytics, webhooks, notifications)
+- **Benefit**: Add features without modifying existing code
+
+#### **Two-Tier Caching Strategy**
+- **In-Memory**: Fast, per-instance (knowledge base)
+- **Redis**: Shared across instances, persistent
+- **Graceful Degradation**: Falls back to in-memory if Redis unavailable
+
+---
+
+## LLM Integration
+
+### **Provider: OpenAI**
+
+Using **GPT-4** (or GPT-3.5-turbo for cost optimization).
+
+**Why OpenAI?**
+- Best-in-class function calling support
+- Reliable API with good rate limits
+- Excellent instruction following
+- Strong reasoning for customer support scenarios
+
+### **Prompting Strategy**
+
+#### System Prompt Structure
+```
+You are a helpful and friendly customer support agent for an e-commerce store.
+
+Guidelines:
+- Be polite, empathetic, and helpful
+- Provide accurate information based on the knowledge base
+- If you don't know something, admit it
+- Keep responses concise but complete
+- Use a warm, conversational tone
+
+[Knowledge Base Content]
+## Shipping
+...
+## Returns & Refunds
+...
 ```
 
-Response:
-```json
+#### Context Management
+- **Conversation History**: Last 10 messages (configurable)
+- **Knowledge Base**: Cached and injected into system prompt
+- **Token Optimization**: 
+  - Max tokens: 500 (prevents overly verbose responses)
+  - Temperature: 0.7 (balanced creativity/consistency)
+
+#### Function Calling (Architecture Ready)
+```typescript
+// Tools available to LLM (when enabled)
 {
-  "status": "healthy",
-  "timestamp": "2024-01-15T10:30:00.000Z",
-  "uptime": 123.45,
-  "services": {
-    "database": "connected",
-    "llm": "connected"
-  }
+  "name": "check_inventory",
+  "description": "Check product stock levels",
+  "parameters": { "productId": "string" }
 }
 ```
 
-### Create Conversation
+### **LLM Configuration**
 
-```http
-POST /api/conversations
+Easily customizable via environment variables:
+
+```env
+OPENAI_MODEL=gpt-4           # or gpt-3.5-turbo
+LLM_MAX_TOKENS=500          # Response length limit
+LLM_TEMPERATURE=0.7         # Creativity (0-1)
 ```
 
-Response:
-```json
-{
-  "conversationId": "550e8400-e29b-41d4-a716-446655440000"
-}
-```
+### **Error Handling**
 
-### Send Message
+Comprehensive error mapping for better UX:
+- Rate limits → "AI service temporarily busy"
+- Context length → "Conversation too long, start new one"
+- Network errors → "Cannot connect, try again"
+- Invalid API key → "Configuration error, contact support"
 
-```http
-POST /api/conversations/:conversationId/messages
+---
+
+## API Endpoints
+
+### Chat API
+
+```bash
+# Send a message
+POST /chat/message
 Content-Type: application/json
 
 {
-  "message": "What is your return policy?"
+  "message": "What are your shipping policies?",
+  "sessionId": "optional-conversation-id"
 }
-```
 
 Response:
-```json
 {
-  "messageId": "660e8400-e29b-41d4-a716-446655440000",
-  "reply": "We accept returns within 30 days of delivery...",
+  "reply": "We offer free shipping on orders over $50...",
+  "sessionId": "uuid-of-conversation",
   "processingTime": 1234
 }
 ```
 
-### Get Conversation History
-
-```http
-GET /api/conversations/:conversationId/messages
-```
+```bash
+# Get conversation history
+GET /chat/conversation/:sessionId
 
 Response:
-```json
 {
+  "sessionId": "uuid",
   "messages": [
     {
-      "id": "msg-1",
-      "text": "What is your return policy?",
+      "id": "msg-uuid",
       "sender": "user",
-      "createdAt": "2024-01-15T10:30:00.000Z"
-    },
-    {
-      "id": "msg-2",
-      "text": "We accept returns within 30 days...",
-      "sender": "assistant",
-      "createdAt": "2024-01-15T10:30:02.000Z"
+      "text": "Hello",
+      "timestamp": "2024-01-20T10:00:00Z"
     }
   ]
 }
 ```
 
-## 🗂️ Database Schema (Drizzle)
-
-### conversations
-
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid | Primary key |
-| status | varchar | 'active' or 'closed' |
-| metadata | jsonb | Custom metadata |
-| created_at | timestamp | Creation time |
-| updated_at | timestamp | Last update time |
-
-### messages
-
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid | Primary key |
-| conversation_id | uuid | Foreign key to conversations |
-| text | text | Message content |
-| sender | varchar | 'user' or 'assistant' |
-| metadata | jsonb | Custom metadata |
-| created_at | timestamp | Creation time |
-
-### knowledge_entries
-
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid | Primary key |
-| category | varchar | FAQ category |
-| title | varchar | Entry title |
-| content | text | Entry content |
-| priority | integer | Display priority |
-| is_active | boolean | Active status |
-| created_at | timestamp | Creation time |
-| updated_at | timestamp | Last update time |
-
-## 🧪 Testing
-
-Test the API with curl:
+### Health Check
 
 ```bash
-# Health check
-curl http://localhost:3000/health
+GET /health
 
-# Create conversation
-CONV_ID=$(curl -X POST http://localhost:3000/api/conversations | jq -r '.conversationId')
-
-# Send message
-curl -X POST http://localhost:3000/api/conversations/$CONV_ID/messages \
-  -H "Content-Type: application/json" \
-  -d '{"message":"What is your shipping policy?"}'
-
-# Get history
-curl http://localhost:3000/api/conversations/$CONV_ID/messages
+Response:
+{
+  "status": "healthy",
+  "timestamp": "2024-01-20T10:00:00Z",
+  "database": "connected",
+  "llm": "healthy"
+}
 ```
-
-## 🔧 Configuration
-
-### Environment Variables
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `NODE_ENV` | No | `development` | Environment mode |
-| `PORT` | No | `3000` | Server port |
-| `DATABASE_URL` | Yes | - | NeonDB connection string |
-| `OPENAI_API_KEY` | Yes | - | OpenAI API key |
-| `OPENAI_MODEL` | No | `gpt-4` | OpenAI model |
-| `REDIS_ENABLED` | No | `false` | Enable Redis caching |
-| `REDIS_URL` | No | - | Redis connection URL |
-| `LOG_LEVEL` | No | `info` | Winston log level |
-
-## 📖 Module Documentation
-
-### Chat Module (`src/modules/chat`)
-
-Orchestration layer that coordinates:
-- Conversation creation & management
-- Message routing between user and LLM
-- Knowledge base retrieval for context
-- Event publishing for analytics
-
-### LLM Module (`src/modules/llm`)
-
-OpenAI integration supporting:
-- **GPT-4**, GPT-3.5 Turbo
-
-Implements:
-- System prompt building
-- Conversation context formatting
-- Error handling & retries
-- Health checks
-
-### Conversation Module (`src/modules/conversation`)
-
-Manages:
-- Conversation lifecycle (create, update, close)
-- Message persistence
-- Conversation history retrieval
-- Repository pattern for data access
-
-### Knowledge Module (`src/modules/knowledge`)
-
-Features:
-- FAQ storage & retrieval
-- **Redis caching** with 10-min TTL (falls back to in-memory)
-- Category-based organization
-- Priority-based sorting
-- Active/inactive entry management
-- Cache invalidation on CRUD operations
-
-### Messaging Module (`src/modules/messaging`)
-
-Event bus for:
-- `MESSAGE_RECEIVED` - User message logged
-- `MESSAGE_SENT` - AI response sent
-- `LLM_REQUEST_FAILED` - LLM error occurred
-- `CONVERSATION_CREATED` - New conversation started
-- `CONVERSATION_CLOSED` - Conversation ended
-
-### API Module (`src/modules/api`)
-
-HTTP layer with:
-- Express routes & middleware
-- **Redis-based distributed rate limiting** (with in-memory fallback)
-- Zod validation
-- Error handling
-- CORS configuration
-
-### Redis Module (`src/shared/redis`)
-
-Caching layer optimized for Render free tier (25MB RAM, 50 connections):
-- **Lazy connection** - connects on first use
-- **Auto-reconnect** - handles cold starts after sleep
-- **Graceful fallback** - app continues if Redis unavailable
-- **Knowledge base caching** - reduces DB load (10-min TTL)
-- **Rate limit counters** - distributed across instances
-- **Health monitoring** - memory & connection tracking
-
-## 🚀 Deployment
-
-### NeonDB Production
-
-1. Create production database in NeonDB
-2. Update `DATABASE_URL` in production environment
-3. Run migrations:
-   ```bash
-   npm run db:migrate
-   ```
-4. Seed knowledge base:
-   ```bash
-   npm run db:seed
-   ```
-
-### Environment Setup
-
-Set production environment variables:
-
-```bash
-export NODE_ENV=production
-export PORT=3000
-export DATABASE_URL=postgresql://...
-export OPENAI_API_KEY=sk-...
-```
-
-### Start Production Server
-
-```bash
-npm run build
-npm start
-```
-
-## 📝 License
-
-MIT
-
-## 🤝 Contributing
-
-Pull requests welcome! Please ensure:
-- TypeScript compiles without errors
-- Follow existing code style
-- Add tests for new features
-
-## 📧 Support
-
-For issues or questions, open a GitHub issue.
 
 ---
 
-**Built with ❤️ using Modular Monolith Architecture**
+## Trade-offs & "If I Had More Time..."
+
+### **Current Trade-offs**
+
+#### **Chose: Modular Monolith**
+- **Instead of**: Microservices
+- **Why**: Faster development, easier deployment, suitable for MVP
+- **Trade-off**: Single deployment unit (vs independent scaling)
+
+#### **Chose: PostgreSQL with Drizzle ORM**
+- **Instead of**: MongoDB, Prisma
+- **Why**: Type-safe SQL, excellent performance, migrations
+- **Trade-off**: More verbose than document stores
+
+#### **Chose: OpenAI Only**
+- **Instead of**: Multi-provider from day 1
+- **Why**: Focus on UX and architecture first
+- **Trade-off**: Vendor lock-in (mitigated by abstraction layer)
+
+#### **Chose: Single Web Channel**
+- **Instead of**: All channels at once
+- **Why**: Prove architecture extensibility without overbuilding
+- **Trade-off**: Telegram/WhatsApp placeholder implementations
+
+### **If I Had More Time... (Priority Order)**
+
+#### **Priority 1: Production Hardening**
+- [ ] **Comprehensive testing**
+  - Unit tests for services (Jest)
+  - Integration tests for API endpoints (Supertest)
+  - E2E tests for frontend (Playwright)
+  - Target: 80%+ coverage
+
+- [ ] **Observability**
+  - OpenTelemetry tracing
+  - Prometheus metrics
+  - Grafana dashboards
+  - Error tracking (Sentry)
+
+- [ ] **Security enhancements**
+  - JWT authentication
+  - API key management
+  - Input sanitization
+  - Rate limiting per user (not just IP)
+
+#### **Priority 2: Advanced Features**
+- [ ] **Real AI Agent Tools**
+  - Shopify API integration (inventory, orders)
+  - Stripe payment links
+  - Email/SMS notifications
+  - Calendar booking
+
+- [ ] **Multi-Channel Support**
+  - Telegram Bot API (webhook ready, implementation pending)
+  - WhatsApp Business API (webhook ready, implementation pending)
+  - Instagram Messaging
+  - Facebook Messenger
+
+- [ ] **Conversation Intelligence**
+  - Sentiment analysis
+  - Intent classification
+  - Auto-escalation to human agents
+  - CSAT surveys
+
+#### **Priority 3: Scale & Optimization**
+- [ ] **Performance**
+  - WebSocket for real-time updates
+  - GraphQL for flexible queries
+  - CDN for static assets
+  - Database query optimization
+
+- [ ] **Analytics Dashboard**
+  - Conversation metrics
+  - Response time tracking
+  - User satisfaction scores
+  - Knowledge base gap analysis
+
+- [ ] **Multi-tenancy**
+  - Support multiple stores
+  - Per-tenant knowledge bases
+  - Isolated data and configs
+
+#### **Nice-to-Have Enhancements**
+- [ ] Voice input/output
+- [ ] File upload support (images, receipts)
+- [ ] Multilingual support
+- [ ] Admin panel for knowledge base management
+- [ ] A/B testing for prompts
+- [ ] Local LLM support (Ollama, LLaMA)
+
+---
+
+## Technology Stack
+
+### **Backend**
+- **Runtime**: Node.js 18+ with TypeScript
+- **Framework**: Express.js
+- **Database**: PostgreSQL (NeonDB recommended)
+- **ORM**: Drizzle ORM
+- **Validation**: Zod
+- **Logging**: Winston
+- **Caching**: Redis (optional, with in-memory fallback)
+
+### **Frontend**
+- **Framework**: Svelte + Vite
+- **Styling**: Custom CSS (no frameworks)
+- **State**: Svelte stores
+- **Build**: Vite (fast HMR)
+
+### **AI/LLM**
+- **Provider**: OpenAI (GPT-4 / GPT-3.5-turbo)
+- **Abstraction**: Custom `ILLMProvider` interface
+- **Tool Calling**: OpenAI function calling API
+
+### **DevOps**
+- **Deployment**: Render, Railway, or Vercel
+- **CI/CD**: GitHub Actions (ready to add)
+- **Monitoring**: Winston logs (ready for aggregation)
+
+---
+
+## Development Commands
+
+```bash
+# Development
+npm run dev              # Backend with hot reload
+npm run dev:frontend     # Frontend with hot reload
+npm run dev:all          # Both concurrently
+
+# Building
+npm run build            # Compile TypeScript
+npm run build:frontend   # Build frontend assets
+npm run build:all        # Build everything
+
+# Database
+npm run db:generate      # Generate migrations from schema
+npm run db:push          # Push schema to database
+npm run db:migrate       # Run migrations
+npm run db:seed          # Seed knowledge base
+npm run db:setup         # Push + Seed (first-time setup)
+
+# Code Quality
+npm run lint             # ESLint check
+npm run type-check       # TypeScript check (no emit)
+```
+
+---
+
+## Project Structure
+
+```
+.
+├── src/
+│   ├── app.ts                    # Application bootstrap
+│   ├── server.ts                 # HTTP server entry point
+│   ├── modules/                  # Feature modules
+│   │   ├── api/                 # HTTP layer
+│   │   ├── chat/                # Chat orchestration
+│   │   ├── conversation/        # Message persistence
+│   │   ├── knowledge/           # Knowledge base
+│   │   ├── llm/                 # LLM abstraction
+│   │   ├── channels/            # Multi-channel (WEB, Telegram, WhatsApp)
+│   │   ├── tools/               # AI function calling tools
+│   │   └── messaging/           # Event bus
+│   ├── shared/                   # Shared utilities
+│   │   ├── config/              # Configuration
+│   │   ├── database/            # Database client
+│   │   ├── errors/              # Error classes
+│   │   ├── logger/              # Logging
+│   │   ├── redis/               # Redis client
+│   │   └── types/               # TypeScript types
+│   └── scripts/                  # Utility scripts
+├── frontend/                     # Svelte frontend
+│   ├── src/
+│   │   ├── App.svelte           # Main app component
+│   │   ├── components/          # UI components
+│   │   └── config.js            # Frontend config
+│   └── vite.config.js           # Vite configuration
+├── migrations/                   # SQL migrations
+├── drizzle.config.ts            # Drizzle ORM config
+├── package.json                 # Dependencies
+├── tsconfig.json                # TypeScript config
+└── .env.example                 # Example environment vars
+```
+
+---
+
+## Deployment
+
+### Render (Recommended)
+
+1. **Create PostgreSQL database** (or use NeonDB)
+2. **Create Web Service**
+   - Build command: `npm run build:all`
+   - Start command: `npm start`
+3. **Environment variables**: Copy from `.env.example`
+4. **Deploy**: Push to GitHub and connect
+
+### Railway
+
+```bash
+railway init
+railway add --database postgresql
+railway up
+```
+
+### Docker (Coming Soon)
+
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --production
+COPY . .
+RUN npm run build:all
+CMD ["npm", "start"]
+```
+
+---
+
+## Contributing
+
+This is a technical assessment project, but feedback is welcome!
+
+### Future Contributions Could Include:
+- Real channel implementations (Telegram, WhatsApp)
+- Additional AI tools (Shopify, Stripe, etc.)
+- Testing suite
+- Internationalization (i18n)
+
+---
+
+## License
+
+MIT License - Feel free to use for learning and reference.
+
+---
+
+## Acknowledgments
+
+Built as a technical assessment demonstrating:
+- Clean architecture principles
+- Extensible design patterns
+- Production-ready code quality
+- Modern TypeScript best practices
+- Thoughtful AI/LLM integration
+
+---
+
+**Made with ❤️ by Subham**

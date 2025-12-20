@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { TooManyRequestsError } from '../../../shared/errors';
 import { redisClient } from '../../../shared/redis';
 import logger from '../../../shared/logger';
+import { config } from '../../../shared/config';
 
 interface RateLimitStore {
   [key: string]: {
@@ -15,8 +16,11 @@ class RateLimiter {
   private cleanupInterval: NodeJS.Timeout;
 
   constructor() {
-    // Clean up expired entries every 5 minutes
-    this.cleanupInterval = setInterval(() => this.cleanup(), 5 * 60 * 1000);
+    // Clean up expired entries periodically
+    this.cleanupInterval = setInterval(
+      () => this.cleanup(), 
+      config.cache.cleanupIntervalMinutes * 60 * 1000
+    );
   }
 
   private cleanup(): void {
@@ -104,23 +108,25 @@ export async function chatRateLimit(req: Request, res: Response, next: NextFunct
   const ip = req.ip || req.socket.remoteAddress || 'unknown';
   const identifier = `chat:${ip}`;
   
-  // Allow 20 messages per hour per IP
-  const allowed = await rateLimiter.check(identifier, 20, 60 * 60 * 1000);
+  const maxRequests = config.rateLimit.chat.max;
+  const windowMs = config.rateLimit.chat.windowHours * 60 * 60 * 1000;
+  
+  const allowed = await rateLimiter.check(identifier, maxRequests, windowMs);
 
   if (!allowed) {
     const retryAfter = await rateLimiter.getRetryAfter(identifier);
     res.setHeader('Retry-After', retryAfter);
-    res.setHeader('X-RateLimit-Limit', '20');
+    res.setHeader('X-RateLimit-Limit', maxRequests.toString());
     res.setHeader('X-RateLimit-Remaining', '0');
     res.setHeader('X-RateLimit-Reset', new Date(Date.now() + retryAfter * 1000).toISOString());
     
     throw new TooManyRequestsError(
-      `Rate limit exceeded. You can send 20 messages per hour. Try again in ${retryAfter} seconds.`
+      `Rate limit exceeded. You can send ${maxRequests} messages per ${config.rateLimit.chat.windowHours} hour(s). Try again in ${retryAfter} seconds.`
     );
   }
 
   // Set rate limit headers
-  res.setHeader('X-RateLimit-Limit', '20');
+  res.setHeader('X-RateLimit-Limit', maxRequests.toString());
   res.setHeader('X-RateLimit-Remaining', '0'); // Actual count in Redis, placeholder for now
   
   next();
@@ -131,14 +137,16 @@ export async function conversationRateLimit(req: Request, res: Response, next: N
   const ip = req.ip || req.socket.remoteAddress || 'unknown';
   const identifier = `conversation:${ip}`;
   
-  // Allow 5 new conversations per hour per IP
-  const allowed = await rateLimiter.check(identifier, 5, 60 * 60 * 1000);
+  const maxRequests = config.rateLimit.conversation.max;
+  const windowMs = config.rateLimit.conversation.windowHours * 60 * 60 * 1000;
+  
+  const allowed = await rateLimiter.check(identifier, maxRequests, windowMs);
 
   if (!allowed) {
     const retryAfter = await rateLimiter.getRetryAfter(identifier);
     res.setHeader('Retry-After', retryAfter);
     throw new TooManyRequestsError(
-      `Too many conversations created. Limit: 5 per hour. Try again in ${retryAfter} seconds.`
+      `Too many conversations created. Limit: ${maxRequests} per ${config.rateLimit.conversation.windowHours} hour(s). Try again in ${retryAfter} seconds.`
     );
   }
 
@@ -150,8 +158,10 @@ export async function globalRateLimit(req: Request, res: Response, next: NextFun
   const ip = req.ip || req.socket.remoteAddress || 'unknown';
   const identifier = `global:${ip}`;
   
-  // Allow 100 requests per 15 minutes per IP
-  const allowed = await rateLimiter.check(identifier, 100, 15 * 60 * 1000);
+  const maxRequests = config.rateLimit.global.max;
+  const windowMs = config.rateLimit.global.windowMinutes * 60 * 1000;
+  
+  const allowed = await rateLimiter.check(identifier, maxRequests, windowMs);
 
   if (!allowed) {
     const retryAfter = await rateLimiter.getRetryAfter(identifier);

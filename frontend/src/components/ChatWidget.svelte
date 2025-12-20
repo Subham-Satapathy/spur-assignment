@@ -14,8 +14,8 @@
   let messagesContainer;
   let questionCache = new Map();
   let failedMessage = null; // Store failed message for retry
-  const CACHE_DURATION = 5 * 60 * 1000;
-  const MAX_MESSAGE_LENGTH = 2000;
+  const CACHE_DURATION = parseInt(import.meta.env.VITE_CACHE_DURATION) || 5 * 60 * 1000;
+  const MAX_MESSAGE_LENGTH = parseInt(import.meta.env.VITE_MAX_MESSAGE_LENGTH) || 2000;
 
   onMount(async () => {
     conversationId = localStorage.getItem('conversationId') || '';
@@ -290,8 +290,8 @@
           type="text"
           bind:value={inputMessage}
           on:keypress={handleKeyPress}
-          placeholder={isLoading ? 'Agent is typing...' : 'Type your message...'}
-          disabled={isLoading}
+          placeholder={isLoading ? 'Agent is typing...' : isLoadingHistory ? 'Loading conversation...' : 'Type your message...'}
+          disabled={isLoading || isLoadingHistory}
           autocomplete="off"
           maxlength={MAX_MESSAGE_LENGTH}
         />
@@ -301,7 +301,7 @@
           </div>
         {/if}
       </div>
-      <button type="submit" disabled={isLoading || !inputMessage.trim()}>
+      <button type="submit" disabled={isLoading || isLoadingHistory || !inputMessage.trim()}>
         {isLoading ? '...' : 'Send'}
       </button>
     </form>
@@ -349,6 +349,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    min-height: 60px;
   }
 
   .chat-header h1 {
@@ -356,6 +357,9 @@
     font-weight: 500;
     margin: 0;
     flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .close-button-header {
@@ -397,18 +401,19 @@
   .empty-state {
     text-align: center;
     color: #8b8e98;
-    padding: 60px 20px;
+    padding: 40px 20px;
   }
 
   .empty-state p {
     margin: 0 0 20px 0;
-    font-size: 15px;
+    font-size: 16px;
+    line-height: 1.5;
   }
 
   .suggestions {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
-    margin-bottom: 12px;
+    margin-bottom: 16px;
     color: #a0a3b0;
   }
 
@@ -419,15 +424,19 @@
   }
 
   .suggestions-list li {
-    padding: 10px 14px;
+    padding: 14px 16px;
     background: #2d3040;
-    border-radius: 8px;
-    margin: 8px 0;
-    font-size: 14px;
+    border-radius: 10px;
+    margin: 10px 0;
+    font-size: 15px;
     color: #d1d3db;
     border: 1px solid #353845;
     cursor: pointer;
     transition: all 0.2s ease;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    text-align: left;
   }
 
   .suggestions-list li:hover {
@@ -623,7 +632,6 @@
     flex: 1;
     position: relative;
     min-width: 0;
-    max-width: calc(100% - 94px);
   }
 
   .char-counter {
@@ -721,11 +729,69 @@
     .chat-container {
       width: 100%;
       height: 100vh;
+      height: 100dvh;
       border-radius: 0;
     }
 
     .close-button-header {
       display: flex;
+    }
+
+    .chat-header {
+      padding: 14px 16px;
+    }
+
+    .chat-header h1 {
+      font-size: 15px;
+    }
+
+    .messages {
+      padding: 16px 12px;
+    }
+
+    .empty-state {
+      padding: 30px 16px;
+    }
+
+    .empty-state p {
+      font-size: 17px;
+    }
+
+    .suggestions-list li {
+      font-size: 16px;
+      padding: 16px 18px;
+      margin: 12px 0;
+    }
+
+    .message {
+      max-width: 85%;
+    }
+
+    .message-content {
+      font-size: 16px;
+      padding: 14px 16px;
+    }
+
+    .chat-input {
+      padding: 12px;
+      gap: 8px;
+    }
+
+    .chat-input input {
+      font-size: 16px;
+      padding: 14px 16px;
+    }
+
+    .chat-input button {
+      font-size: 16px;
+      padding: 14px 18px;
+      min-width: 65px;
+    }
+
+    .error-banner {
+      padding: 14px 16px;
+      font-size: 14px;
+      flex-wrap: wrap;
     }
   }
 </style>

@@ -5,6 +5,7 @@ import { ChatService } from '../chat';
 import { LLMService } from '../llm';
 import { createChatRoutes } from './routes/chat.routes';
 import { createHealthRoutes } from './routes/health.routes';
+import { createChannelWebhookRoutes } from './routes/webhook.routes';
 import { requestLogger } from './middleware/logger';
 import { errorHandler, notFoundHandler } from './middleware/error-handler';
 import { globalRateLimit } from './middleware/rate-limiter';
@@ -26,6 +27,7 @@ export function createApp(chatService: ChatService, llmService: LLMService): Exp
   // Serve API routes first
   app.use('/health', createHealthRoutes(llmService));
   app.use('/chat', createChatRoutes(chatService));
+  app.use('/webhooks', createChannelWebhookRoutes(chatService)); // Channel webhooks
 
   // Serve frontend static files from build output
   const frontendPath = path.join(__dirname, '..', '..', '..', 'frontend', 'dist');

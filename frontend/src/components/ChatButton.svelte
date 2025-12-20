@@ -52,6 +52,13 @@
   }
 
   @media (max-width: 640px) {
+    .chat-button {
+      bottom: 20px;
+      right: 20px;
+      width: 56px;
+      height: 56px;
+    }
+
     .chat-button.active {
       display: none;
     }

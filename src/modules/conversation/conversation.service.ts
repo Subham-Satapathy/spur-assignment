@@ -1,5 +1,5 @@
 import { ConversationRepository } from './conversation.repository';
-import { Conversation, Message, MessageSender } from '../../shared/types';
+import { Conversation, Message, MessageSender, ChannelType } from '../../shared/types';
 import { NotFoundError } from '../../shared/errors';
 import logger from '../../shared/logger';
 
@@ -30,6 +30,8 @@ export class ConversationService {
     conversationId: string,
     sender: MessageSender,
     text: string,
+    channelType: ChannelType = 'WEB',
+    channelUserId?: string,
     metadata?: Record<string, any>
   ): Promise<Message> {
     await this.getConversation(conversationId);
@@ -38,12 +40,15 @@ export class ConversationService {
       conversationId,
       sender,
       textLength: text.length,
+      channelType,
     });
 
     const message = await this.repository.addMessage(
       conversationId,
       sender,
       text,
+      channelType,
+      channelUserId,
       metadata
     );
 

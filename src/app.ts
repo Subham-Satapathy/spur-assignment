@@ -6,6 +6,13 @@ import { LLMService } from './modules/llm';
 import { EventBus } from './modules/messaging';
 import { ChatService } from './modules/chat';
 import { createApp } from './modules/api';
+import { ChannelFactory } from './modules/channels';
+import {
+  toolRegistry,
+  CheckInventoryTool,
+  TrackOrderTool,
+  CalculateShippingTool,
+} from './modules/tools';
 import { config } from './shared/config';
 import logger from './shared/logger';
 import { redisClient } from './shared/redis';
@@ -62,6 +69,28 @@ export async function bootstrapApp(): Promise<AppContext> {
     config.llm.maxTokens,
     config.llm.temperature
   );
+
+  // Initialize tools if enabled
+  if (config.app.enableTools) {
+    logger.info('Registering tools...');
+    toolRegistry.registerMany([
+      new CheckInventoryTool(),
+      new TrackOrderTool(),
+      new CalculateShippingTool(),
+    ]);
+    logger.info(`${toolRegistry.count} tools registered`);
+  } else {
+    logger.info('Tools disabled');
+  }
+
+  // Initialize channels
+  try {
+    await ChannelFactory.initializeAll();
+  } catch (error) {
+    logger.warn('Channel initialization had errors', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
 
   const chatService = new ChatService(
     conversationService,

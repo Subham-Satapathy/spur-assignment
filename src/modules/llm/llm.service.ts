@@ -1,4 +1,4 @@
-import { ConversationContext, LLMResponse, LLMProvider } from '../../shared/types';
+import { ConversationContext, LLMResponse, LLMProvider, ToolDefinition } from '../../shared/types';
 import { ConfigurationError, LLMError } from '../../shared/errors';
 import { ILLMProvider } from './llm.types';
 import { OpenAIProvider } from './providers/openai.provider';
@@ -11,8 +11,8 @@ export class LLMService {
     providerType: LLMProvider,
     apiKey: string,
     model: string,
-    maxTokens: number = 500,
-    temperature: number = 0.7
+    maxTokens: number,
+    temperature: number
   ) {
     if (!apiKey) {
       throw new ConfigurationError('LLM API key is required');
@@ -29,18 +29,23 @@ export class LLMService {
   /**
    * Generate a reply from the LLM
    */
-  async generateReply(context: ConversationContext): Promise<LLMResponse> {
+  async generateReply(
+    context: ConversationContext,
+    tools?: ToolDefinition[]
+  ): Promise<LLMResponse> {
     try {
       logger.debug('Generating LLM reply', {
         conversationId: context.conversationId,
         messageCount: context.messages.length,
+        toolsCount: tools?.length || 0,
       });
 
-      const response = await this.provider.generateReply(context);
+      const response = await this.provider.generateReply(context, tools);
 
       logger.info('LLM reply generated successfully', {
         conversationId: context.conversationId,
         replyLength: response.reply.length,
+        hasToolCalls: !!response.toolCalls,
         processingTime: response.metadata.processingTime,
       });
 

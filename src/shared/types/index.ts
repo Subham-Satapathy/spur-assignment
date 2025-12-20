@@ -8,15 +8,32 @@
 export type MessageSender = 'user' | 'ai';
 
 /**
+ * Channel type
+ */
+export type ChannelType = 'WEB' | 'TELEGRAM' | 'WHATSAPP' | 'INSTAGRAM' | 'FACEBOOK';
+
+/**
  * Conversation status
  */
 export type ConversationStatus = 'active' | 'closed';
+
+/**
+ * User entity
+ */
+export interface User {
+  id: string;
+  email?: string;
+  metadata?: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 /**
  * Conversation entity
  */
 export interface Conversation {
   id: string;
+  userId?: string;
   createdAt: Date;
   updatedAt: Date;
   metadata?: Record<string, any>;
@@ -31,6 +48,8 @@ export interface Message {
   conversationId: string;
   sender: MessageSender;
   text: string;
+  channelType: ChannelType;
+  channelUserId?: string;
   createdAt: Date;
   metadata?: {
     llmModel?: string;
@@ -55,9 +74,23 @@ export interface KnowledgeEntry {
 }
 
 /**
+ * Tool execution entity
+ */
+export interface ToolExecution {
+  id: string;
+  messageId: string;
+  toolName: string;
+  input: any;
+  output?: any;
+  status: 'pending' | 'success' | 'error';
+  errorMessage?: string;
+  executedAt: Date;
+}
+
+/**
  * LLM provider types
  */
-export type LLMProvider = 'openai';
+export type LLMProvider = 'openai' | 'anthropic';
 
 /**
  * Conversation context for LLM
@@ -70,6 +103,35 @@ export interface ConversationContext {
     timestamp: Date;
   }>;
   knowledgeBase: string;
+  availableTools?: ToolDefinition[];
+}
+
+/**
+ * Tool definition for LLM
+ */
+export interface ToolDefinition {
+  type: 'function';
+  function: {
+    name: string;
+    description: string;
+    parameters: {
+      type: 'object';
+      properties: Record<string, any>;
+      required: string[];
+    };
+  };
+}
+
+/**
+ * Tool call from LLM
+ */
+export interface ToolCall {
+  id: string;
+  type: 'function';
+  function: {
+    name: string;
+    arguments: string;
+  };
 }
 
 /**
@@ -77,6 +139,7 @@ export interface ConversationContext {
  */
 export interface LLMResponse {
   reply: string;
+  toolCalls?: ToolCall[];
   metadata: {
     model: string;
     tokens?: number;

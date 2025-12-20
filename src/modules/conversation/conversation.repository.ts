@@ -1,9 +1,10 @@
 import { eq, desc } from 'drizzle-orm';
 import type { NeonHttpDatabase } from 'drizzle-orm/neon-http';
 import { conversations, messages } from '../../shared/database/schema';
-import { Conversation, Message, MessageSender, QueryOptions } from '../../shared/types';
+import { Conversation, Message, MessageSender, QueryOptions, ChannelType } from '../../shared/types';
 import { DatabaseError, NotFoundError } from '../../shared/errors';
 import logger from '../../shared/logger';
+import { config } from '../../shared/config';
 
 export class ConversationRepository {
   constructor(private db: NeonHttpDatabase<any>) {}
@@ -86,6 +87,8 @@ export class ConversationRepository {
     conversationId: string,
     sender: MessageSender,
     text: string,
+    channelType: ChannelType = 'WEB',
+    channelUserId?: string,
     metadata?: Record<string, any>
   ): Promise<Message> {
     try {
@@ -95,6 +98,8 @@ export class ConversationRepository {
           conversationId,
           sender,
           text,
+          channelType,
+          channelUserId: channelUserId || null,
           metadata: metadata || null,
         })
         .returning();
@@ -131,14 +136,15 @@ export class ConversationRepository {
     }
   }
 
-  async getRecentMessages(conversationId: string, limit: number = 10): Promise<Message[]> {
+  async getRecentMessages(conversationId: string, limit?: number): Promise<Message[]> {
     try {
+      const messageLimit = limit || config.app.maxConversationHistory;
       const result = await this.db
         .select()
         .from(messages)
         .where(eq(messages.conversationId, conversationId))
         .orderBy(desc(messages.createdAt))
-        .limit(limit);
+        .limit(messageLimit);
 
       return result.reverse().map(this.mapMessageRow);
     } catch (error) {
@@ -162,8 +168,8 @@ export class ConversationRepository {
       id: row.id,
       conversationId: row.conversationId,
       sender: row.sender,
-      text: row.text,
-      createdAt: new Date(row.createdAt),
+      text: row.text,      channelType: row.channelType || 'WEB',
+      channelUserId: row.channelUserId,      createdAt: new Date(row.createdAt),
       metadata: row.metadata,
     };
   }

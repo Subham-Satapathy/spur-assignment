@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { ConversationContext, LLMResponse } from '../../../shared/types';
+import { ConversationContext, LLMResponse, ToolDefinition, ToolCall } from '../../../shared/types';
 import { LLMError } from '../../../shared/errors';
 import { ILLMProvider, buildSystemPrompt, buildConversationMessages } from '../llm.types';
 import logger from '../../../shared/logger';
@@ -9,14 +9,14 @@ export class OpenAIProvider implements ILLMProvider {
 
   constructor(
     apiKey: string,
-    private model: string = 'gpt-4',
-    private maxTokens: number = 500,
-    private temperature: number = 0.7
+    private model: string,
+    private maxTokens: number,
+    private temperature: number
   ) {
     this.client = new OpenAI({ apiKey });
   }
 
-  async generateReply(context: ConversationContext): Promise<LLMResponse> {
+  async generateReply(context: ConversationContext, tools?: ToolDefinition[]): Promise<LLMResponse> {
     const startTime = Date.now();
 
     try {
@@ -26,9 +26,10 @@ export class OpenAIProvider implements ILLMProvider {
       logger.debug('Calling OpenAI API', {
         model: this.model,
         messageCount: messages.length,
+        toolsCount: tools?.length || 0,
       });
 
-      const completion = await this.client.chat.completions.create({
+      const completionParams: OpenAI.Chat.ChatCompletionCreateParams = {
         model: this.model,
         messages: [
           { role: 'system', content: systemPrompt },
@@ -36,24 +37,46 @@ export class OpenAIProvider implements ILLMProvider {
         ],
         max_tokens: this.maxTokens,
         temperature: this.temperature,
-      });
+      };
 
-      const reply = completion.choices[0]?.message?.content;
+      // Add tools if provided
+      if (tools && tools.length > 0) {
+        completionParams.tools = tools as any;
+        completionParams.tool_choice = 'auto';
+      }
 
-      if (!reply) {
+      const completion = await this.client.chat.completions.create(completionParams);
+
+      const message = completion.choices[0]?.message;
+
+      if (!message) {
         throw new Error('No response from OpenAI');
       }
 
       const processingTime = Date.now() - startTime;
 
+      // Extract tool calls if present
+      const toolCalls: ToolCall[] | undefined = message.tool_calls?.map((tc) => ({
+        id: tc.id,
+        type: tc.type,
+        function: {
+          name: tc.function.name,
+          arguments: tc.function.arguments,
+        },
+      }));
+
+      const reply = message.content || '';
+
       logger.info('OpenAI response received', {
         model: this.model,
         tokens: completion.usage?.total_tokens,
         processingTime,
+        hasToolCalls: !!toolCalls,
       });
 
       return {
         reply: reply.trim(),
+        toolCalls,
         metadata: {
           model: this.model,
           tokens: completion.usage?.total_tokens,

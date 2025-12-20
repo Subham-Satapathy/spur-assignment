@@ -3,9 +3,10 @@ import { z } from 'zod';
 import { ChatService } from '../../chat';
 import { validateBody } from '../middleware/validation';
 import { chatRateLimit, conversationRateLimit } from '../middleware/rate-limiter';
+import { config } from '../../../shared/config';
 
 const sendMessageSchema = z.object({
-  message: z.string().min(1, 'Message cannot be empty').max(2000, 'Message too long'),
+  message: z.string().min(1, 'Message cannot be empty').max(config.app.maxMessageLength, 'Message too long'),
   sessionId: z.string().uuid().optional(),
 });
 

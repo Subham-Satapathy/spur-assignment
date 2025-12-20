@@ -2,13 +2,15 @@ import { ConversationService } from '../conversation';
 import { LLMService } from '../llm';
 import { KnowledgeService } from '../knowledge';
 import { EventBus } from '../messaging';
+import { toolRegistry } from '../tools';
 import { SendMessageRequest, SendMessageResponse, ConversationHistoryResponse } from './chat.types';
 import { ValidationError } from '../../shared/errors';
 import { config } from '../../shared/config';
 import logger from '../../shared/logger';
+import { ChannelType, ToolCall } from '../../shared/types';
 
 /**
- * Chat service - orchestrates conversation, LLM, and knowledge modules
+ * Chat service - orchestrates conversation, LLM, knowledge, and tool modules
  */
 export class ChatService {
   constructor(
@@ -21,7 +23,11 @@ export class ChatService {
   /**
    * Send a message and get AI reply
    */
-  async sendMessage(request: SendMessageRequest): Promise<SendMessageResponse> {
+  async sendMessage(
+    request: SendMessageRequest,
+    channelType: ChannelType = 'WEB',
+    channelUserId?: string
+  ): Promise<SendMessageResponse> {
     const startTime = Date.now();
 
     // Validate input
@@ -35,6 +41,7 @@ export class ChatService {
     logger.info('Processing chat message', {
       conversationId,
       messageLength: request.message.length,
+      channelType,
     });
 
     try {
@@ -42,7 +49,9 @@ export class ChatService {
       const userMessage = await this.conversationService.addMessage(
         conversationId,
         'user',
-        request.message
+        request.message,
+        channelType,
+        channelUserId
       );
 
       // Publish event
@@ -54,6 +63,7 @@ export class ChatService {
           messageId: userMessage.id,
           text: request.message,
           sender: 'user',
+          channelType,
         },
       });
 
@@ -66,18 +76,36 @@ export class ChatService {
       // Step 3: Get knowledge base
       const knowledgeBase = await this.knowledgeService.formatForPrompt();
 
-      // Step 4: Generate AI reply
-      const llmResponse = await this.llmService.generateReply({
-        conversationId,
-        messages: history,
-        knowledgeBase,
-      });
+      // Step 4: Get available tools (if enabled)
+      const toolDefinitions = config.app.enableTools ? toolRegistry.getAllDefinitions() : [];
 
-      // Step 5: Save AI message
+      // Step 5: Generate AI reply with tool support
+      let llmResponse = await this.llmService.generateReply(
+        {
+          conversationId,
+          messages: history,
+          knowledgeBase,
+          availableTools: toolDefinitions,
+        },
+        toolDefinitions.length > 0 ? toolDefinitions : undefined
+      );
+
+      // Step 6: Execute tool calls if present
+      if (llmResponse.toolCalls && llmResponse.toolCalls.length > 0) {
+        llmResponse = await this.handleToolCalls(
+          llmResponse.toolCalls,
+          conversationId,
+          userMessage.id
+        );
+      }
+
+      // Step 7: Save AI message
       const aiMessage = await this.conversationService.addMessage(
         conversationId,
         'ai',
         llmResponse.reply,
+        channelType,
+        channelUserId,
         {
           llmModel: llmResponse.metadata.model,
           tokens: llmResponse.metadata.tokens,
@@ -96,6 +124,7 @@ export class ChatService {
           messageId: aiMessage.id,
           text: llmResponse.reply,
           processingTime: totalProcessingTime,
+          channelType,
         },
       });
 
@@ -128,6 +157,70 @@ export class ChatService {
 
       throw error;
     }
+  }
+
+  /**
+   * Handle tool calls from LLM
+   */
+  private async handleToolCalls(
+    toolCalls: ToolCall[],
+    conversationId: string,
+    _messageId: string
+  ): Promise<any> {
+    logger.info('Handling tool calls', {
+      conversationId,
+      count: toolCalls.length,
+    });
+
+    const toolResults = [];
+
+    for (const toolCall of toolCalls) {
+      try {
+        const params = JSON.parse(toolCall.function.arguments);
+        const result = await toolRegistry.execute(toolCall.function.name, params);
+
+        toolResults.push({
+          tool: toolCall.function.name,
+          success: true,
+          result,
+        });
+
+        logger.info('Tool executed successfully', {
+          tool: toolCall.function.name,
+          conversationId,
+        });
+      } catch (error) {
+        logger.error('Tool execution failed', {
+          tool: toolCall.function.name,
+          error: error instanceof Error ? error.message : String(error),
+        });
+
+        toolResults.push({
+          tool: toolCall.function.name,
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+
+    // Format tool results as a response
+    const toolSummary = toolResults
+      .map((r) => {
+        if (r.success) {
+          return `${r.tool}: ${JSON.stringify(r.result)}`;
+        }
+        return `${r.tool} failed: ${r.error}`;
+      })
+      .join('\n');
+
+    return {
+      reply: `Based on the tools, here's what I found:\n${toolSummary}`,
+      metadata: {
+        model: 'tool-execution',
+        processingTime: 0,
+        toolResults,
+      },
+    };
   }
 
   /**

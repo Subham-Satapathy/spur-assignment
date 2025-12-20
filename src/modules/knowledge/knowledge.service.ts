@@ -2,13 +2,14 @@ import { KnowledgeRepository } from './knowledge.repository';
 import { KnowledgeEntry } from '../../shared/types';
 import logger from '../../shared/logger';
 import { redisClient } from '../../shared/redis';
+import { config } from '../../shared/config';
 
 export class KnowledgeService {
   private cachedPrompt: string | null = null;
   private cacheExpiry: number = 0;
-  private readonly CACHE_TTL = 60000; // 60 seconds (in-memory fallback)
+  private readonly CACHE_TTL = config.cache.knowledgeTtlSeconds * 1000;
   private readonly REDIS_CACHE_KEY = 'knowledge:formatted_prompt';
-  private readonly REDIS_TTL = 600; // 10 minutes in Redis (conserve 25MB RAM)
+  private readonly REDIS_TTL = config.cache.knowledgeRedisTtlSeconds;
 
   constructor(private repository: KnowledgeRepository) {}
 

@@ -1,4 +1,4 @@
-import { ConversationContext, LLMResponse } from '../../shared/types';
+import { ConversationContext, LLMResponse, ToolDefinition } from '../../shared/types';
 
 /**
  * Interface for LLM providers
@@ -7,7 +7,7 @@ export interface ILLMProvider {
   /**
    * Generate a reply based on conversation context
    */
-  generateReply(context: ConversationContext): Promise<LLMResponse>;
+  generateReply(context: ConversationContext, tools?: ToolDefinition[]): Promise<LLMResponse>;
 
   /**
    * Health check to verify provider is configured correctly
