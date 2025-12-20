@@ -326,7 +326,7 @@ Comprehensive error mapping for better UX:
 Access the complete API documentation with Swagger UI:
 
 **Development**: http://localhost:3000/api-docs  
-**Production**: https://your-production-url.com/api-docs
+**Production**: https://spur-shop.subhs.xyz/api-docs
 
 #### Features:
 - 🚀 **Interactive Testing**: Test endpoints directly from the browser
