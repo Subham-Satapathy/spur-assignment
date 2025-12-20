@@ -1,6 +1,8 @@
 import express, { Express } from 'express';
 import cors from 'cors';
 import path from 'path';
+import swaggerJsdoc from 'swagger-jsdoc';
+import swaggerUi from 'swagger-ui-express';
 import { ChatService } from '../chat';
 import { LLMService } from '../llm';
 import { createChatRoutes } from './routes/chat.routes';
@@ -9,6 +11,7 @@ import { createChannelWebhookRoutes } from './routes/webhook.routes';
 import { requestLogger } from './middleware/logger';
 import { errorHandler, notFoundHandler } from './middleware/error-handler';
 import { globalRateLimit } from './middleware/rate-limiter';
+import { swaggerOptions } from '../../shared/config/swagger';
 
 export function createApp(chatService: ChatService, llmService: LLMService): Express {
   const app = express();
@@ -20,6 +23,14 @@ export function createApp(chatService: ChatService, llmService: LLMService): Exp
   app.use(express.json({ limit: '10kb' })); // Limit payload size
   app.use(express.urlencoded({ extended: true, limit: '10kb' }));
   app.use(requestLogger);
+  
+  // Swagger documentation
+  const swaggerSpec = swaggerJsdoc(swaggerOptions);
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    explorer: true,
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'AI Chat Support API Documentation',
+  }));
   
   // Apply global rate limiting to all API routes
   app.use('/chat', globalRateLimit);

@@ -2,6 +2,8 @@
 
 An intelligent, production-ready customer support chatbot built with a **modular monolith architecture**. Features multi-channel support readiness, tool/function calling infrastructure, and extensible LLM provider integration.
 
+🔗 **Live Demo**: [https://spur-shop.subhs.xyz/](https://spur-shop.subhs.xyz/)
+
 ---
 
 ## Quick Start
@@ -317,7 +319,23 @@ Comprehensive error mapping for better UX:
 
 ---
 
-## API Endpoints
+## API Documentation
+
+### **Swagger UI (Interactive API Docs)**
+
+Access the complete API documentation with Swagger UI:
+
+**Development**: http://localhost:3000/api-docs  
+**Production**: https://your-production-url.com/api-docs
+
+#### Features:
+- 🚀 **Interactive Testing**: Test endpoints directly from the browser
+- 📋 **Request/Response Examples**: View sample payloads and responses
+- 📊 **Schema Definitions**: Detailed information about data models
+- 🔐 **Security Documentation**: Authentication and webhook verification
+- ⚠️ **Error Responses**: Documented error codes and messages
+
+### API Endpoints
 
 ### Chat API
 
@@ -369,6 +387,36 @@ Response:
   "database": "connected",
   "llm": "healthy"
 }
+```
+
+### Webhook Endpoints
+
+```bash
+# Telegram webhook (ready for integration)
+POST /webhooks/telegram
+
+# WhatsApp webhook (ready for integration)
+POST /webhooks/whatsapp
+GET /webhooks/whatsapp  # Verification endpoint
+```
+
+#### Adding Documentation to New Endpoints
+
+Use JSDoc comments with the `@swagger` tag:
+
+```typescript
+/**
+ * @swagger
+ * /your-endpoint:
+ *   get:
+ *     summary: Brief description
+ *     description: Detailed description
+ *     tags: [YourTag]
+ *     responses:
+ *       200:
+ *         description: Success response
+ */
+router.get('/your-endpoint', handler);
 ```
 
 ---

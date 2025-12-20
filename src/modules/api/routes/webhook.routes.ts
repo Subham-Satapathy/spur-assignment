@@ -10,7 +10,44 @@ export function createChannelWebhookRoutes(chatService: ChatService): Router {
   const router = Router();
 
   /**
-   * Telegram webhook endpoint
+   * @swagger
+   * /webhooks/telegram:
+   *   post:
+   *     summary: Telegram webhook endpoint
+   *     description: Receives incoming messages from Telegram and processes them through the AI chat assistant
+   *     tags: [Webhooks]
+   *     security:
+   *       - TelegramBotToken: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             description: Telegram webhook payload
+   *     responses:
+   *       200:
+   *         description: Message processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 ok:
+   *                   type: boolean
+   *                   example: true
+   *       401:
+   *         description: Webhook verification failed
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 error:
+   *                   type: string
+   *                   example: Unauthorized
+   *       500:
+   *         $ref: '#/components/responses/InternalError'
    */
   router.post('/telegram', async (req: Request, res: Response, next) => {
     try {
@@ -62,7 +99,44 @@ export function createChannelWebhookRoutes(chatService: ChatService): Router {
   });
 
   /**
-   * WhatsApp webhook endpoint
+   * @swagger
+   * /webhooks/whatsapp:
+   *   post:
+   *     summary: WhatsApp webhook endpoint
+   *     description: Receives incoming messages from WhatsApp Business API and processes them through the AI chat assistant
+   *     tags: [Webhooks]
+   *     security:
+   *       - WhatsAppSignature: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             description: WhatsApp webhook payload
+   *     responses:
+   *       200:
+   *         description: Message processed successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 status:
+   *                   type: string
+   *                   example: ok
+   *       401:
+   *         description: Webhook verification failed
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 error:
+   *                   type: string
+   *                   example: Unauthorized
+   *       500:
+   *         $ref: '#/components/responses/InternalError'
    */
   router.post('/whatsapp', async (req: Request, res: Response, next) => {
     try {
@@ -114,7 +188,46 @@ export function createChannelWebhookRoutes(chatService: ChatService): Router {
   });
 
   /**
-   * WhatsApp webhook verification (GET request from Meta)
+   * @swagger
+   * /webhooks/whatsapp:
+   *   get:
+   *     summary: WhatsApp webhook verification
+   *     description: Verifies the WhatsApp webhook with Meta's challenge-response check
+   *     tags: [Webhooks]
+   *     parameters:
+   *       - in: query
+   *         name: hub.mode
+   *         required: true
+   *         schema:
+   *           type: string
+   *           example: subscribe
+   *       - in: query
+   *         name: hub.verify_token
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Verification token configured in WhatsApp Business API
+   *       - in: query
+   *         name: hub.challenge
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Challenge string to echo back
+   *     responses:
+   *       200:
+   *         description: Webhook verified successfully
+   *         content:
+   *           text/plain:
+   *             schema:
+   *               type: string
+   *               description: Challenge string echoed back
+   *       403:
+   *         description: Verification failed
+   *         content:
+   *           text/plain:
+   *             schema:
+   *               type: string
+   *               example: Forbidden
    */
   router.get('/whatsapp', (req: Request, res: Response) => {
     const mode = req.query['hub.mode'];

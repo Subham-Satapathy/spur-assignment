@@ -30,7 +30,7 @@ export class TelegramChannel extends BaseChannel {
     return true;
   }
 
-  parseIncomingMessage(payload: any): IncomingMessage | null {
+  parseIncomingMessage(_payload: any): IncomingMessage | null {
     logger.debug('Telegram parseIncomingMessage called (placeholder)');
     // TODO: Parse Telegram webhook payload
     return null;

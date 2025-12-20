@@ -30,7 +30,7 @@ export class WhatsAppChannel extends BaseChannel {
     return true;
   }
 
-  parseIncomingMessage(payload: any): IncomingMessage | null {
+  parseIncomingMessage(_payload: any): IncomingMessage | null {
     logger.debug('WhatsApp parseIncomingMessage called (placeholder)');
     // TODO: Parse WhatsApp webhook payload
     return null;
