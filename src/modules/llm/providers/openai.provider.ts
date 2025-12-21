@@ -133,14 +133,9 @@ export class OpenAIProvider implements ILLMProvider {
 
   async healthCheck(): Promise<boolean> {
     try {
-      // Simple test with minimal token usage
-      const completion = await this.client.chat.completions.create({
-        model: this.model,
-        messages: [{ role: 'user', content: 'Hi' }],
-        max_tokens: 5,
-      });
-
-      return !!completion.choices[0]?.message?.content;
+      // Lightweight check - just verify the client is configured
+      // Avoid actual API calls to prevent rate limiting in health checks
+      return !!this.client;
     } catch (error) {
       logger.error('OpenAI health check failed', { error });
       return false;

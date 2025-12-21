@@ -237,12 +237,12 @@
         <div class="empty-state">
           <p>👋 Hello! How can I help you today?</p>
           <p class="suggestions">Try asking about:</p>
-          <ul class="suggestions-list">
-            <li on:click={() => sendSuggestion('What are your shipping policies?')}>Shipping policies</li>
-            <li on:click={() => sendSuggestion('How does the return and refund process work?')}>Return & refund process</li>
-            <li on:click={() => sendSuggestion('What payment methods do you accept?')}>Payment methods</li>
-            <li on:click={() => sendSuggestion('What are your support hours?')}>Support hours</li>
-          </ul>
+          <div class="suggestions-list">
+            <button type="button" on:click={() => sendSuggestion('What are your shipping policies?')}>Shipping policies</button>
+            <button type="button" on:click={() => sendSuggestion('How does the return and refund process work?')}>Return & refund process</button>
+            <button type="button" on:click={() => sendSuggestion('What payment methods do you accept?')}>Payment methods</button>
+            <button type="button" on:click={() => sendSuggestion('What are your support hours?')}>Support hours</button>
+          </div>
         </div>
       {:else}
         {#each messages as message (message.id)}
@@ -418,16 +418,17 @@
   }
 
   .suggestions-list {
-    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
     padding: 0;
     margin: 0;
   }
 
-  .suggestions-list li {
+  .suggestions-list button {
     padding: 14px 16px;
     background: #2d3040;
     border-radius: 10px;
-    margin: 10px 0;
     font-size: 15px;
     color: #d1d3db;
     border: 1px solid #353845;
@@ -437,15 +438,17 @@
     display: flex;
     align-items: center;
     text-align: left;
+    width: 100%;
+    font-family: inherit;
   }
 
-  .suggestions-list li:hover {
+  .suggestions-list button:hover {
     background: #353845;
     border-color: #3fb574;
     transform: translateX(4px);
   }
 
-  .suggestions-list li:active {
+  .suggestions-list button:active {
     transform: translateX(2px);
   }
 
@@ -757,10 +760,9 @@
       font-size: 17px;
     }
 
-    .suggestions-list li {
+    .suggestions-list button {
       font-size: 16px;
       padding: 16px 18px;
-      margin: 12px 0;
     }
 
     .message {
