@@ -2,6 +2,7 @@ import { ConversationContext, LLMResponse, LLMProvider, ToolDefinition } from '.
 import { ConfigurationError, LLMError } from '../../shared/errors';
 import { ILLMProvider } from './llm.types';
 import { OpenAIProvider } from './providers/openai.provider';
+import { OpenRouterProvider } from './providers/openrouter.provider';
 import logger from '../../shared/logger';
 
 export class LLMService {
@@ -18,10 +19,19 @@ export class LLMService {
       throw new ConfigurationError('LLM API key is required');
     }
 
-    if (providerType !== 'openai') {
-      throw new Error(`Unsupported LLM provider: ${providerType}. Only OpenAI is supported.`);
+    // Create provider based on type
+    switch (providerType) {
+      case 'openai':
+        this.provider = new OpenAIProvider(apiKey, model, maxTokens, temperature);
+        break;
+      case 'openrouter':
+        this.provider = new OpenRouterProvider(apiKey, model, maxTokens, temperature);
+        break;
+      case 'anthropic':
+        throw new Error('Anthropic provider not yet implemented');
+      default:
+        throw new Error(`Unsupported LLM provider: ${providerType}`);
     }
-    this.provider = new OpenAIProvider(apiKey, model, maxTokens, temperature);
 
     logger.info('LLM service initialized', { provider: providerType, model });
   }

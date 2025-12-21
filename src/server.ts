@@ -40,7 +40,12 @@ async function start() {
     process.on('SIGTERM', () => shutdown('SIGTERM'));
     process.on('SIGINT', () => shutdown('SIGINT'));
   } catch (error) {
-    logger.error('Failed to start server', { error });
+    logger.error('Failed to start server', { 
+      error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined 
+    });
+    console.error('Startup error:', error);
     process.exit(1);
   }
 }

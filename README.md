@@ -12,7 +12,9 @@ An intelligent, production-ready customer support chatbot built with a **modular
 
 - **Node.js** 18+ and npm
 - **PostgreSQL** database (NeonDB, Railway, or local)
-- **OpenAI API Key** (for GPT-4/GPT-3.5)
+- **LLM API Key**: 
+  - **OpenAI API Key** (for GPT-4/GPT-3.5) OR
+  - **OpenRouter API Key** (for access to multiple models including free options)
 - Optional: **Redis** (for caching)
 
 ---
@@ -72,9 +74,29 @@ NODE_ENV=development
 # Database (use your NeonDB or local PostgreSQL URL)
 DATABASE_URL=postgresql://user:password@host:5432/dbname?sslmode=require
 
-# OpenAI API (REQUIRED)
+# LLM Provider Configuration
+# Choose one: "openai", "openrouter", or "anthropic"
+LLM_PROVIDER=openrouter
+
+# Primary LLM API Configuration (REQUIRED)
+LLM_API_KEY=your-api-key-here
+LLM_MODEL=openai/gpt-oss-20b:free
+
+# OpenAI Configuration (when using LLM_PROVIDER=openai)
 OPENAI_API_KEY=sk-your-openai-api-key-here
 OPENAI_MODEL=gpt-4
+
+# OpenRouter Configuration (when using LLM_PROVIDER=openrouter)
+# Get your API key from: https://openrouter.ai/keys
+# Browse models at: https://openrouter.ai/models
+# Example models:
+#   - openai/gpt-4-turbo
+#   - openai/gpt-3.5-turbo
+#   - openai/gpt-oss-20b:free (free model, no credit card required)
+#   - anthropic/claude-3-opus
+#   - meta-llama/llama-3-70b-instruct
+OPENROUTER_REFERER=https://yourdomain.com
+OPENROUTER_TITLE=Customer Support Agent
 
 # Optional: Advanced LLM Configuration
 LLM_MAX_TOKENS=500
@@ -252,15 +274,67 @@ eventBus.subscribe('MESSAGE_RECEIVED', handler);
 
 ## LLM Integration
 
-### **Provider: OpenAI**
+### **Supported Providers**
 
-Using **GPT-4** (or GPT-3.5-turbo for cost optimization).
+#### **OpenRouter (Recommended for Flexibility)**
 
-**Why OpenAI?**
+OpenRouter provides access to multiple LLM providers through a unified API.
+
+**Why OpenRouter?**
+- Access to 100+ models from multiple providers (OpenAI, Anthropic, Meta, Google, etc.)
+- Free tier available with models like `openai/gpt-oss-20b:free`
+- No credit card required for free models
+- Unified API for all providers
+- Automatic fallback and load balancing
+- Pay-per-use pricing (only pay for what you use)
+
+**Getting Started with OpenRouter:**
+1. Sign up at [openrouter.ai](https://openrouter.ai)
+2. Get your API key from [openrouter.ai/keys](https://openrouter.ai/keys)
+3. Browse available models at [openrouter.ai/models](https://openrouter.ai/models)
+4. Set `LLM_PROVIDER=openrouter` in your `.env`
+
+**Recommended Models:**
+- `openai/gpt-oss-20b:free` - Free, no credit card required
+- `openai/gpt-3.5-turbo` - Fast and cost-effective
+- `openai/gpt-4-turbo` - Best quality
+- `anthropic/claude-3-sonnet` - Excellent for conversations
+- `meta-llama/llama-3-70b-instruct` - Open-source alternative
+
+#### **OpenAI (Direct)**
+
+Direct integration with OpenAI's API using GPT-4 or GPT-3.5-turbo.
+
+**Why OpenAI Direct?**
 - Best-in-class function calling support
 - Reliable API with good rate limits
 - Excellent instruction following
 - Strong reasoning for customer support scenarios
+
+**Getting Started with OpenAI:**
+1. Sign up at [platform.openai.com](https://platform.openai.com)
+2. Get your API key from the dashboard
+3. Set `LLM_PROVIDER=openai` in your `.env`
+
+#### **Anthropic Claude (Coming Soon)**
+
+Support for Anthropic's Claude models is planned.
+
+### **Provider Configuration**
+
+Switch between providers by changing a single environment variable:
+
+```env
+# Use OpenRouter
+LLM_PROVIDER=openrouter
+LLM_API_KEY=sk-or-v1-...
+LLM_MODEL=openai/gpt-oss-20b:free
+
+# OR use OpenAI directly
+LLM_PROVIDER=openai
+LLM_API_KEY=sk-...
+LLM_MODEL=gpt-4
+```
 
 ### **Prompting Strategy**
 
@@ -304,10 +378,17 @@ Guidelines:
 Easily customizable via environment variables:
 
 ```env
-OPENAI_MODEL=gpt-4           # or gpt-3.5-turbo
-LLM_MAX_TOKENS=500          # Response length limit
-LLM_TEMPERATURE=0.7         # Creativity (0-1)
+LLM_PROVIDER=openrouter       # Provider: openai, openrouter, or anthropic
+LLM_MODEL=openai/gpt-oss-20b:free  # Model name (provider-specific)
+LLM_MAX_TOKENS=500            # Response length limit
+LLM_TEMPERATURE=0.7           # Creativity (0-1)
 ```
+
+**Model Selection Tips:**
+- For production: Use GPT-4 or Claude for best quality
+- For development: Use GPT-3.5 or free models to save costs
+- For high volume: Consider cheaper models with caching
+- For privacy: Use local models (future feature)
 
 ### **Error Handling**
 

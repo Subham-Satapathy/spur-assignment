@@ -90,7 +90,7 @@ export interface ToolExecution {
 /**
  * LLM provider types
  */
-export type LLMProvider = 'openai' | 'anthropic';
+export type LLMProvider = 'openai' | 'openrouter' | 'anthropic';
 
 /**
  * Conversation context for LLM

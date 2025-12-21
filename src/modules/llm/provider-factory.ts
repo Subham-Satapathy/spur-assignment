@@ -1,5 +1,6 @@
 import { ILLMProvider } from './llm.types';
 import { OpenAIProvider } from './providers/openai.provider';
+import { OpenRouterProvider } from './providers/openrouter.provider';
 import { LLMProvider } from '../../shared/types';
 import { ConfigurationError } from '../../shared/errors';
 import logger from '../../shared/logger';
@@ -39,6 +40,9 @@ export class LLMProviderFactory {
       case 'openai':
         return new OpenAIProvider(config.apiKey, config.model, maxTokens, temperature);
 
+      case 'openrouter':
+        return new OpenRouterProvider(config.apiKey, config.model, maxTokens, temperature);
+
       case 'anthropic':
         // Future implementation:
         // return new AnthropicProvider(config.apiKey, config.model, maxTokens, temperature);
@@ -56,6 +60,7 @@ export class LLMProviderFactory {
     const provider = (process.env.LLM_PROVIDER || 'openai') as LLMProvider;
     const apiKey = process.env.LLM_API_KEY || process.env.OPENAI_API_KEY || '';
     const model = process.env.LLM_MODEL || 'gpt-3.5-turbo';
+    
     const maxTokens = parseInt(process.env.LLM_MAX_TOKENS || '500', 10);
     const temperature = parseFloat(process.env.LLM_TEMPERATURE || '0.7');
 
