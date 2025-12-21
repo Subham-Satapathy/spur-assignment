@@ -11,7 +11,7 @@ export interface Config {
     url: string;
   };
   llm: {
-    provider: 'openai' | 'openrouter';
+    provider: 'openai' | 'openrouter' | 'gemini';
     apiKey: string;
     model: string;
     maxTokens: number;
@@ -70,7 +70,7 @@ export const config: Config = {
     url: process.env.DATABASE_URL || '',
   },
   llm: {
-    provider: (process.env.LLM_PROVIDER || 'openai') as 'openai' | 'openrouter',
+    provider: (process.env.LLM_PROVIDER || 'openai') as 'openai' | 'openrouter' | 'gemini',
     apiKey: process.env.LLM_API_KEY || process.env.OPENAI_API_KEY || '',
     model: process.env.LLM_MODEL || process.env.OPENAI_MODEL || 'gpt-4',
     maxTokens: parseInt(process.env.LLM_MAX_TOKENS || '500', 10),
@@ -127,8 +127,8 @@ export function validateConfig(options: { skipLLM?: boolean } = {}): void {
     errors.push('LLM API key is required (set LLM_API_KEY or OPENAI_API_KEY)');
   }
 
-  if (config.llm.provider !== 'openai' && config.llm.provider !== 'openrouter') {
-    errors.push('LLM_PROVIDER must be "openai" or "openrouter"');
+  if (config.llm.provider !== 'openai' && config.llm.provider !== 'openrouter' && config.llm.provider !== 'gemini') {
+    errors.push('LLM_PROVIDER must be "openai", "openrouter", or "gemini"');
   }
 
   if (!config.database.url) {

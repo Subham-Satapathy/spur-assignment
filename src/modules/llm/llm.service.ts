@@ -3,6 +3,7 @@ import { ConfigurationError, LLMError } from '../../shared/errors';
 import { ILLMProvider } from './llm.types';
 import { OpenAIProvider } from './providers/openai.provider';
 import { OpenRouterProvider } from './providers/openrouter.provider';
+import { GeminiProvider } from './providers/gemini.provider';
 import logger from '../../shared/logger';
 
 export class LLMService {
@@ -26,6 +27,9 @@ export class LLMService {
         break;
       case 'openrouter':
         this.provider = new OpenRouterProvider(apiKey, model, maxTokens, temperature);
+        break;
+      case 'gemini':
+        this.provider = new GeminiProvider(apiKey, model, maxTokens, temperature);
         break;
       case 'anthropic':
         throw new Error('Anthropic provider not yet implemented');

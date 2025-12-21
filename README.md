@@ -13,6 +13,7 @@ An intelligent, production-ready customer support chatbot built with a **modular
 - **Node.js** 18+ and npm
 - **PostgreSQL** database (NeonDB, Railway, or local)
 - **LLM API Key**: 
+  - **Google Gemini API Key** (free tier available - recommended) OR
   - **OpenAI API Key** (for GPT-4/GPT-3.5) OR
   - **OpenRouter API Key** (for access to multiple models including free options)
 - Optional: **Redis** (for caching)
@@ -75,12 +76,20 @@ NODE_ENV=development
 DATABASE_URL=postgresql://user:password@host:5432/dbname?sslmode=require
 
 # LLM Provider Configuration
-# Choose one: "openai", "openrouter", or "anthropic"
-LLM_PROVIDER=openrouter
+# Choose one: "gemini", "openai", "openrouter", or "anthropic"
+LLM_PROVIDER=gemini
 
 # Primary LLM API Configuration (REQUIRED)
 LLM_API_KEY=your-api-key-here
-LLM_MODEL=openai/gpt-oss-20b:free
+LLM_MODEL=gemini-2.5-flash
+
+# Google Gemini Configuration (when using LLM_PROVIDER=gemini)
+# Get your free API key from: https://aistudio.google.com/app/apikey
+# Available models:
+#   - gemini-2.5-flash (recommended, free tier)
+#   - gemini-2.0-flash-exp
+#   - gemini-1.5-pro
+# Package: @google/genai
 
 # OpenAI Configuration (when using LLM_PROVIDER=openai)
 OPENAI_API_KEY=sk-your-openai-api-key-here
