@@ -42,27 +42,41 @@ export function createHealthRoutes(llmService: LLMService): Router {
    *                 redis: up
    */
   router.get('/', async (_req: Request, res: Response) => {
-    const dbHealthy = await testDatabaseConnection();
-    const llmHealthy = await llmService.healthCheck();
-    const redisHealthy = await redisClient.isAvailable();
-    
-    // Get Redis stats if available
-    const redisStats = redisHealthy ? await redisClient.getStats() : null;
+    try {
+      const dbHealthy = await testDatabaseConnection();
+      const llmHealthy = await llmService.healthCheck();
+      const redisHealthy = await redisClient.isAvailable();
+      
+      // Get Redis stats if available
+      const redisStats = redisHealthy ? await redisClient.getStats() : null;
 
-    const healthy = dbHealthy && llmHealthy;
+      // Core services must be healthy; Redis is optional
+      const healthy = dbHealthy && llmHealthy;
 
-    res.status(healthy ? 200 : 503).json({
-      status: healthy ? 'healthy' : 'unhealthy',
-      timestamp: new Date().toISOString(),
-      services: {
-        database: dbHealthy ? 'up' : 'down',
-        llm: llmHealthy ? 'up' : 'down',
-        redis: redisHealthy ? 'up' : 'down (optional)',
-      },
-      ...(redisStats && {
-        redis_stats: redisStats,
-      }),
-    });
+      res.status(healthy ? 200 : 503).json({
+        status: healthy ? 'healthy' : 'unhealthy',
+        timestamp: new Date().toISOString(),
+        services: {
+          database: dbHealthy ? 'up' : 'down',
+          llm: llmHealthy ? 'up' : 'down',
+          redis: redisHealthy ? 'up' : 'down (optional)',
+        },
+        ...(redisStats && {
+          redis_stats: redisStats,
+        }),
+      });
+    } catch (error) {
+      res.status(503).json({
+        status: 'unhealthy',
+        timestamp: new Date().toISOString(),
+        error: error instanceof Error ? error.message : 'Unknown error',
+        services: {
+          database: 'unknown',
+          llm: 'unknown',
+          redis: 'unknown',
+        },
+      });
+    }
   });
 
   return router;

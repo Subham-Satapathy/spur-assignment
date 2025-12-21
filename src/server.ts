@@ -17,8 +17,8 @@ async function start() {
         env: config.server.env,
         llmProvider: config.llm.provider,
       });
-      logger.info(`Health check: http://localhost:${config.server.port}/health`);
-      logger.info(`Chat API: http://localhost:${config.server.port}/chat/message`);
+      logger.info(`Health check: http://0.0.0.0:${config.server.port}/health`);
+      logger.info(`Chat API: http://0.0.0.0:${config.server.port}/chat/message`);
     });
 
     const shutdown = async (signal: string) => {
